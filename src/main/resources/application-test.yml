@@ -1,0 +1,33 @@
+# Test Environment Configuration
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/static_data_platform_test
+    username: sdp_user
+    password: dev_password
+  
+  # JPA Test Settings
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+  
+  # Test Features
+  devtools:
+    restart:
+      enabled: false
+
+# Logging Test Settings
+logging:
+  level:
+    com.staticdata.platform: INFO
+    org.springframework.security: WARN
+
+# Security Test Settings
+app:
+  jwt:
+    secret: testSecretKey123456789012345678901234567890
+    expiration: 3600000
+  
+  # Test Features
+  audit:
+    enabled: false

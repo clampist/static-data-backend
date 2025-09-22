@@ -1,0 +1,44 @@
+# Development Environment Configuration
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/static_data_platform_dev
+    username: sdp_user
+    password: dev_password
+  
+  # JPA Development Settings
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  
+  # Development Features
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
+
+# Logging Development Settings
+logging:
+  level:
+    com.staticdata.platform: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+
+# Security Development Settings
+app:
+  jwt:
+    secret: devSecretKey1234567890123456789012345678901234567890123456789012345678901234567890
+    expiration: 86400000
+  
+  # CORS Development Settings
+  security:
+    cors:
+      allowed-origins: http://localhost:3000,http://localhost:5173
+  
+  # Development Features
+  audit:
+    enabled: true
