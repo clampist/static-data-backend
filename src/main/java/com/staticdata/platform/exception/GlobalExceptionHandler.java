@@ -193,24 +193,51 @@ public class GlobalExceptionHandler {
     /**
      * 处理资源不存在异常
      */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(
+            ResourceNotFoundException ex, WebRequest request) {
+        
+        log.warn("Resource not found: {}", ex.getMessage());
+        
+        ErrorResponse errorResponse = ErrorResponse.builder()
+            .timestamp(LocalDateTime.now())
+            .status(HttpStatus.NOT_FOUND.value())
+            .error("Resource Not Found")
+            .message(ex.getMessage())
+            .path(request.getDescription(false))
+            .build();
+            
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    /**
+     * 处理业务异常
+     */
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessException(
+            BusinessException ex, WebRequest request) {
+        
+        log.warn("Business exception: {}", ex.getMessage());
+        
+        ErrorResponse errorResponse = ErrorResponse.builder()
+            .timestamp(LocalDateTime.now())
+            .status(HttpStatus.BAD_REQUEST.value())
+            .error("Business Error")
+            .message(ex.getMessage())
+            .path(request.getDescription(false))
+            .build();
+            
+        return ResponseEntity.badRequest().body(errorResponse);
+    }
+
+    /**
+     * 处理运行时异常
+     */
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleRuntimeException(
             RuntimeException ex, WebRequest request) {
         
         log.error("Runtime exception: {}", ex.getMessage(), ex);
-        
-        // 检查是否是特定的资源不存在异常
-        if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
-            ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.NOT_FOUND.value())
-                .error("Resource Not Found")
-                .message("请求的资源不存在")
-                .path(request.getDescription(false))
-                .build();
-                
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-        }
         
         // 其他运行时异常
         ErrorResponse errorResponse = ErrorResponse.builder()
