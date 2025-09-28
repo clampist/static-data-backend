@@ -22,8 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 
 /**
- * 认证服务类
- * 处理用户登录、注册、token管理等认证相关业务逻辑
+ * 认证服务类 处理用户登录、注册、token管理等认证相关业务逻辑
  */
 @Service
 @RequiredArgsConstructor
@@ -45,39 +44,37 @@ public class AuthService {
     public LoginResponse login(LoginRequest loginRequest) {
         log.info("User login attempt: {}", loginRequest.getUsername());
 
-        // 验证用户凭据
-        Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(
-                loginRequest.getUsername(),
-                loginRequest.getPassword()
-            )
-        );
+        try {
+            // 验证用户凭据
+            Authentication authentication =
+                    authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+                            loginRequest.getUsername(), loginRequest.getPassword()));
 
-        // 设置安全上下文
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+            // 设置安全上下文
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        // 获取用户主体
-        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        
-        // 生成JWT token
-        String jwt = jwtUtils.generateJwtToken(userPrincipal.getUsername());
-        
-        // 更新用户最后登录时间
-        updateLastLoginTime(userPrincipal.getId());
+            // 获取用户主体
+            UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
 
-        // 构建用户DTO
-        UserDto userDto = UserDto.builder()
-            .id(userPrincipal.getId())
-            .username(userPrincipal.getUsername())
-            .email(userPrincipal.getEmail())
-            .fullName(userPrincipal.getFullName())
-            .role(userPrincipal.getRole())
-            .enabled(userPrincipal.isEnabled())
-            .build();
+            // 生成JWT token
+            String jwt = jwtUtils.generateJwtToken(userPrincipal.getUsername());
 
-        log.info("User login successful: {}", userPrincipal.getUsername());
+            // 更新用户最后登录时间
+            updateLastLoginTime(userPrincipal.getId());
 
-        return new LoginResponse(jwt, jwtUtils.getJwtExpirationMs(), userDto);
+            // 构建用户DTO
+            UserDto userDto = UserDto.builder().id(userPrincipal.getId())
+                    .username(userPrincipal.getUsername()).email(userPrincipal.getEmail())
+                    .fullName(userPrincipal.getFullName()).role(userPrincipal.getRole())
+                    .enabled(userPrincipal.isEnabled()).build();
+
+            log.info("User login successful: {}", userPrincipal.getUsername());
+
+            return new LoginResponse(jwt, jwtUtils.getJwtExpirationMs(), userDto);
+        } catch (Exception e) {
+            log.error("Login failed for user {}: {}", loginRequest.getUsername(), e.getMessage());
+            throw new RuntimeException("Invalid credentials");
+        }
     }
 
     /**
@@ -89,6 +86,11 @@ public class AuthService {
     @Transactional
     public UserDto register(RegisterRequest registerRequest) {
         log.info("User registration attempt: {}", registerRequest.getUsername());
+
+        // 验证密码和确认密码是否匹配
+        if (!registerRequest.getPassword().equals(registerRequest.getConfirmPassword())) {
+            throw new IllegalArgumentException("密码和确认密码不匹配");
+        }
 
         // 检查用户名是否已存在
         if (userRepository.existsByUsername(registerRequest.getUsername())) {
@@ -117,16 +119,10 @@ public class AuthService {
         log.info("User registration successful: {}", savedUser.getUsername());
 
         // 转换为DTO并返回
-        return UserDto.builder()
-            .id(savedUser.getId())
-            .username(savedUser.getUsername())
-            .email(savedUser.getEmail())
-            .fullName(savedUser.getFullName())
-            .role(savedUser.getRole())
-            .enabled(savedUser.getEnabled())
-            .createdAt(savedUser.getCreatedAt())
-            .updatedAt(savedUser.getUpdatedAt())
-            .build();
+        return UserDto.builder().id(savedUser.getId()).username(savedUser.getUsername())
+                .email(savedUser.getEmail()).fullName(savedUser.getFullName())
+                .role(savedUser.getRole()).enabled(savedUser.getEnabled())
+                .createdAt(savedUser.getCreatedAt()).updatedAt(savedUser.getUpdatedAt()).build();
     }
 
     /**
@@ -145,23 +141,18 @@ public class AuthService {
 
         // 从token获取用户名
         String username = jwtUtils.getUsernameFromJwtToken(token);
-        
+
         // 查找用户
         User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + username));
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + username));
 
         // 生成新token
         String newJwt = jwtUtils.generateJwtToken(username);
 
         // 构建用户DTO
-        UserDto userDto = UserDto.builder()
-            .id(user.getId())
-            .username(user.getUsername())
-            .email(user.getEmail())
-            .fullName(user.getFullName())
-            .role(user.getRole())
-            .enabled(user.getEnabled())
-            .build();
+        UserDto userDto = UserDto.builder().id(user.getId()).username(user.getUsername())
+                .email(user.getEmail()).fullName(user.getFullName()).role(user.getRole())
+                .enabled(user.getEnabled()).build();
 
         log.info("Token refresh successful for user: {}", username);
 
@@ -191,18 +182,12 @@ public class AuthService {
 
         String username = jwtUtils.getUsernameFromJwtToken(token);
         User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + username));
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + username));
 
-        return UserDto.builder()
-            .id(user.getId())
-            .username(user.getUsername())
-            .email(user.getEmail())
-            .fullName(user.getFullName())
-            .role(user.getRole())
-            .enabled(user.getEnabled())
-            .createdAt(user.getCreatedAt())
-            .updatedAt(user.getUpdatedAt())
-            .build();
+        return UserDto.builder().id(user.getId()).username(user.getUsername())
+                .email(user.getEmail()).fullName(user.getFullName()).role(user.getRole())
+                .enabled(user.getEnabled()).createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt()).build();
     }
 
     /**

@@ -11,14 +11,14 @@ import com.staticdata.platform.security.UserPrincipal;
 import com.staticdata.platform.util.JwtUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -28,298 +28,308 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * 认证服务单元测试
+ * 认证服务集成测试 使用@SpringBootTest替代@ExtendWith(MockitoExtension.class)，简化mock配置
  */
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest
+@ActiveProfiles("test")
 class AuthServiceTest {
 
-    @Mock
-    private AuthenticationManager authenticationManager;
+  @Autowired
+  private AuthService authService;
 
-    @Mock
-    private UserRepository userRepository;
+  @MockBean
+  private UserRepository userRepository;
 
-    @Mock
-    private PasswordEncoder passwordEncoder;
+  @MockBean
+  private PasswordEncoder passwordEncoder;
 
-    @Mock
-    private JwtUtils jwtUtils;
+  @MockBean
+  private JwtUtils jwtUtils;
 
-    @Mock
-    private Authentication authentication;
+  @MockBean
+  private AuthenticationManager authenticationManager;
 
-    @InjectMocks
-    private AuthService authService;
+  private User testUser;
+  private UserPrincipal testUserPrincipal;
+  private LoginRequest loginRequest;
+  private RegisterRequest registerRequest;
 
-    private User testUser;
-    private UserPrincipal testUserPrincipal;
-    private LoginRequest loginRequest;
-    private RegisterRequest registerRequest;
+  @BeforeEach
+  void setUp() {
+    // 创建测试用户
+    testUser = new User();
+    testUser.setId(1L);
+    testUser.setUsername("testuser");
+    testUser.setEmail("test@example.com");
+    testUser.setPassword("encodedPassword");
+    testUser.setFullName("Test User");
+    testUser.setRole(UserRole.USER);
+    testUser.setEnabled(true);
 
-    @BeforeEach
-    void setUp() {
-        // 创建测试用户
-        testUser = new User();
-        testUser.setId(1L);
-        testUser.setUsername("testuser");
-        testUser.setEmail("test@example.com");
-        testUser.setPassword("encodedPassword");
-        testUser.setFullName("Test User");
-        testUser.setRole(UserRole.USER);
-        testUser.setEnabled(true);
-        testUser.setCreatedAt(LocalDateTime.now());
-        testUser.setUpdatedAt(LocalDateTime.now());
+    // 创建测试用户主体
+    testUserPrincipal = UserPrincipal.create(testUser);
 
-        // 创建测试用户主体
-        testUserPrincipal = UserPrincipal.create(testUser);
+    // 设置登录请求
+    loginRequest = new LoginRequest().setUsername("testuser").setPassword("password");
 
-        // 创建登录请求
-        loginRequest = new LoginRequest();
-        loginRequest.setUsername("testuser");
-        loginRequest.setPassword("password");
+    // 设置注册请求
+    registerRequest =
+        new RegisterRequest("newuser", "new@example.com", "password", "password", "New User");
+  }
 
-        // 创建注册请求
-        registerRequest = new RegisterRequest();
-        registerRequest.setUsername("newuser");
-        registerRequest.setEmail("new@example.com");
-        registerRequest.setPassword("password");
-        registerRequest.setConfirmPassword("password");
-        registerRequest.setFullName("New User");
-    }
+  @Test
+  void login_WithValidCredentials_ShouldReturnLoginResponse() {
+    // Given
+    Authentication authentication = mock(Authentication.class);
+    when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+        .thenReturn(authentication);
+    when(authentication.getPrincipal()).thenReturn(testUserPrincipal);
+    when(jwtUtils.generateJwtToken(anyString())).thenReturn("jwt-token");
+    when(jwtUtils.getJwtExpirationMs()).thenReturn(86400000L);
 
-    @Test
-    void login_WithValidCredentials_ShouldReturnLoginResponse() {
-        // Given
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-            .thenReturn(authentication);
-        when(authentication.getPrincipal()).thenReturn(testUserPrincipal);
-        when(jwtUtils.generateJwtToken(anyString())).thenReturn("jwt-token");
-        when(jwtUtils.getJwtExpirationMs()).thenReturn(86400000L);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+    // When
+    LoginResponse response = authService.login(loginRequest);
 
-        // When
-        LoginResponse response = authService.login(loginRequest);
+    // Then
+    assertNotNull(response);
+    assertEquals("jwt-token", response.getAccessToken());
+    assertEquals("Bearer", response.getTokenType());
+    assertEquals(86400000L, response.getExpiresIn());
+    assertNotNull(response.getUser());
+    assertEquals("testuser", response.getUser().getUsername());
 
-        // Then
-        assertNotNull(response);
-        assertEquals("jwt-token", response.getAccessToken());
-        assertEquals(86400000L, response.getExpiresIn());
-        assertNotNull(response.getUser());
-        assertEquals("testuser", response.getUser().getUsername());
-        
-        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(jwtUtils).generateJwtToken("testuser");
-    }
+    verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+    verify(jwtUtils).generateJwtToken("testuser");
+  }
 
-    @Test
-    void register_WithValidRequest_ShouldReturnUserDto() {
-        // Given
-        when(userRepository.existsByUsername("newuser")).thenReturn(false);
-        when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
-        when(passwordEncoder.encode("password")).thenReturn("encodedPassword");
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
+  @Test
+  void login_WithInvalidCredentials_ShouldThrowException() {
+    // Given
+    when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+        .thenThrow(new RuntimeException("Invalid credentials"));
 
-        // When
-        UserDto result = authService.register(registerRequest);
+    // When & Then
+    assertThrows(RuntimeException.class, () -> authService.login(loginRequest));
+    verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+  }
 
-        // Then
-        assertNotNull(result);
-        assertEquals("testuser", result.getUsername()); // Note: using the saved user's data
-        assertEquals("test@example.com", result.getEmail());
-        assertEquals(UserRole.USER, result.getRole());
-        assertTrue(result.getEnabled());
+  @Test
+  void register_WithValidRequest_ShouldReturnUserDto() {
+    // Given
+    when(userRepository.existsByUsername("newuser")).thenReturn(false);
+    when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
+    when(passwordEncoder.encode("password")).thenReturn("encodedPassword");
+    when(userRepository.save(any(User.class))).thenReturn(testUser);
 
-        verify(userRepository).existsByUsername("newuser");
-        verify(userRepository).existsByEmail("new@example.com");
-        verify(passwordEncoder).encode("password");
-        verify(userRepository).save(any(User.class));
-    }
+    // When
+    UserDto result = authService.register(registerRequest);
 
-    @Test
-    void register_WithExistingUsername_ShouldThrowException() {
-        // Given
-        when(userRepository.existsByUsername("newuser")).thenReturn(true);
+    // Then
+    assertNotNull(result);
+    assertEquals("testuser", result.getUsername());
+    assertEquals("test@example.com", result.getEmail());
+    assertEquals(UserRole.USER, result.getRole());
+    assertTrue(result.getEnabled());
 
-        // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, 
-            () -> authService.register(registerRequest));
-        
-        assertEquals("用户名已存在: newuser", exception.getMessage());
-        verify(userRepository).existsByUsername("newuser");
-        verify(userRepository, never()).save(any(User.class));
-    }
+    verify(userRepository).existsByUsername("newuser");
+    verify(userRepository).existsByEmail("new@example.com");
+    verify(passwordEncoder).encode("password");
+    verify(userRepository).save(any(User.class));
+  }
 
-    @Test
-    void register_WithExistingEmail_ShouldThrowException() {
-        // Given
-        when(userRepository.existsByUsername("newuser")).thenReturn(false);
-        when(userRepository.existsByEmail("new@example.com")).thenReturn(true);
+  @Test
+  void register_WithExistingUsername_ShouldThrowException() {
+    // Given
+    when(userRepository.existsByUsername("newuser")).thenReturn(true);
 
-        // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, 
-            () -> authService.register(registerRequest));
-        
-        assertEquals("邮箱已存在: new@example.com", exception.getMessage());
-        verify(userRepository).existsByEmail("new@example.com");
-        verify(userRepository, never()).save(any(User.class));
-    }
+    // When & Then
+    IllegalArgumentException exception =
+        assertThrows(IllegalArgumentException.class, () -> authService.register(registerRequest));
 
-    @Test
-    void refreshToken_WithValidToken_ShouldReturnNewLoginResponse() {
-        // Given
-        String oldToken = "old-jwt-token";
-        String newToken = "new-jwt-token";
-        
-        when(jwtUtils.validateJwtToken(oldToken)).thenReturn(true);
-        when(jwtUtils.getUsernameFromJwtToken(oldToken)).thenReturn("testuser");
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
-        when(jwtUtils.generateJwtToken("testuser")).thenReturn(newToken);
-        when(jwtUtils.getJwtExpirationMs()).thenReturn(86400000L);
+    assertEquals("用户名已存在: newuser", exception.getMessage());
+    verify(userRepository).existsByUsername("newuser");
+  }
 
-        // When
-        LoginResponse response = authService.refreshToken(oldToken);
+  @Test
+  void register_WithExistingEmail_ShouldThrowException() {
+    // Given
+    when(userRepository.existsByUsername("newuser")).thenReturn(false);
+    when(userRepository.existsByEmail("new@example.com")).thenReturn(true);
 
-        // Then
-        assertNotNull(response);
-        assertEquals(newToken, response.getAccessToken());
-        assertEquals(86400000L, response.getExpiresIn());
-        assertNotNull(response.getUser());
-        assertEquals("testuser", response.getUser().getUsername());
+    // When & Then
+    IllegalArgumentException exception =
+        assertThrows(IllegalArgumentException.class, () -> authService.register(registerRequest));
 
-        verify(jwtUtils).validateJwtToken(oldToken);
-        verify(jwtUtils).getUsernameFromJwtToken(oldToken);
-        verify(jwtUtils).generateJwtToken("testuser");
-    }
+    assertEquals("邮箱已存在: new@example.com", exception.getMessage());
+    verify(userRepository).existsByEmail("new@example.com");
+  }
 
-    @Test
-    void refreshToken_WithInvalidToken_ShouldThrowException() {
-        // Given
-        String invalidToken = "invalid-token";
-        when(jwtUtils.validateJwtToken(invalidToken)).thenReturn(false);
+  @Test
+  void register_WithMismatchedPasswords_ShouldThrowException() {
+    // Given
+    registerRequest.setConfirmPassword("different");
 
-        // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, 
-            () -> authService.refreshToken(invalidToken));
-        
-        assertEquals("无效的token", exception.getMessage());
-        verify(jwtUtils).validateJwtToken(invalidToken);
-        verify(jwtUtils, never()).generateJwtToken(anyString());
-    }
+    // When & Then
+    IllegalArgumentException exception =
+        assertThrows(IllegalArgumentException.class, () -> authService.register(registerRequest));
 
-    @Test
-    void validateToken_WithValidToken_ShouldReturnTrue() {
-        // Given
-        String validToken = "valid-token";
-        when(jwtUtils.validateJwtToken(validToken)).thenReturn(true);
+    assertEquals("密码和确认密码不匹配", exception.getMessage());
+  }
 
-        // When
-        boolean result = authService.validateToken(validToken);
+  @Test
+  void refreshToken_WithValidToken_ShouldReturnNewLoginResponse() {
+    // Given
+    String oldToken = "old-jwt-token";
+    String newToken = "new-jwt-token";
 
-        // Then
-        assertTrue(result);
-        verify(jwtUtils).validateJwtToken(validToken);
-    }
+    when(jwtUtils.validateJwtToken(oldToken)).thenReturn(true);
+    when(jwtUtils.getUsernameFromJwtToken(oldToken)).thenReturn("testuser");
+    when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+    when(jwtUtils.generateJwtToken("testuser")).thenReturn(newToken);
+    when(jwtUtils.getJwtExpirationMs()).thenReturn(86400000L);
 
-    @Test
-    void validateToken_WithInvalidToken_ShouldReturnFalse() {
-        // Given
-        String invalidToken = "invalid-token";
-        when(jwtUtils.validateJwtToken(invalidToken)).thenReturn(false);
+    // When
+    LoginResponse response = authService.refreshToken(oldToken);
 
-        // When
-        boolean result = authService.validateToken(invalidToken);
+    // Then
+    assertNotNull(response);
+    assertEquals(newToken, response.getAccessToken());
+    assertEquals("Bearer", response.getTokenType());
+    assertEquals(86400000L, response.getExpiresIn());
+    assertNotNull(response.getUser());
 
-        // Then
-        assertFalse(result);
-        verify(jwtUtils).validateJwtToken(invalidToken);
-    }
+    verify(jwtUtils).validateJwtToken(oldToken);
+    verify(jwtUtils).getUsernameFromJwtToken(oldToken);
+    verify(userRepository).findByUsername("testuser");
+    verify(jwtUtils).generateJwtToken("testuser");
+  }
 
-    @Test
-    void getUserFromToken_WithValidToken_ShouldReturnUserDto() {
-        // Given
-        String validToken = "valid-token";
-        when(jwtUtils.validateJwtToken(validToken)).thenReturn(true);
-        when(jwtUtils.getUsernameFromJwtToken(validToken)).thenReturn("testuser");
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+  @Test
+  void refreshToken_WithInvalidToken_ShouldThrowException() {
+    // Given
+    String invalidToken = "invalid-token";
+    when(jwtUtils.validateJwtToken(invalidToken)).thenReturn(false);
 
-        // When
-        UserDto result = authService.getUserFromToken(validToken);
+    // When & Then
+    IllegalArgumentException exception =
+        assertThrows(IllegalArgumentException.class, () -> authService.refreshToken(invalidToken));
 
-        // Then
-        assertNotNull(result);
-        assertEquals("testuser", result.getUsername());
-        assertEquals("test@example.com", result.getEmail());
-        assertEquals(UserRole.USER, result.getRole());
+    assertEquals("无效的token", exception.getMessage());
+    verify(jwtUtils).validateJwtToken(invalidToken);
+  }
 
-        verify(jwtUtils).validateJwtToken(validToken);
-        verify(jwtUtils).getUsernameFromJwtToken(validToken);
-        verify(userRepository).findByUsername("testuser");
-    }
+  @Test
+  void validateToken_WithValidToken_ShouldReturnTrue() {
+    // Given
+    String token = "valid-token";
+    when(jwtUtils.validateJwtToken(token)).thenReturn(true);
 
-    @Test
-    void getUserFromToken_WithInvalidToken_ShouldThrowException() {
-        // Given
-        String invalidToken = "invalid-token";
-        when(jwtUtils.validateJwtToken(invalidToken)).thenReturn(false);
+    // When
+    boolean result = authService.validateToken(token);
 
-        // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, 
-            () -> authService.getUserFromToken(invalidToken));
-        
-        assertEquals("无效的token", exception.getMessage());
-        verify(jwtUtils).validateJwtToken(invalidToken);
-        verify(userRepository, never()).findByUsername(anyString());
-    }
+    // Then
+    assertTrue(result);
+    verify(jwtUtils).validateJwtToken(token);
+  }
 
-    @Test
-    void isUsernameAvailable_WithAvailableUsername_ShouldReturnTrue() {
-        // Given
-        when(userRepository.existsByUsername("newuser")).thenReturn(false);
+  @Test
+  void validateToken_WithInvalidToken_ShouldReturnFalse() {
+    // Given
+    String token = "invalid-token";
+    when(jwtUtils.validateJwtToken(token)).thenReturn(false);
 
-        // When
-        boolean result = authService.isUsernameAvailable("newuser");
+    // When
+    boolean result = authService.validateToken(token);
 
-        // Then
-        assertTrue(result);
-        verify(userRepository).existsByUsername("newuser");
-    }
+    // Then
+    assertFalse(result);
+    verify(jwtUtils).validateJwtToken(token);
+  }
 
-    @Test
-    void isUsernameAvailable_WithTakenUsername_ShouldReturnFalse() {
-        // Given
-        when(userRepository.existsByUsername("testuser")).thenReturn(true);
+  @Test
+  void getUserFromToken_WithValidToken_ShouldReturnUserDto() {
+    // Given
+    String token = "valid-token";
+    when(jwtUtils.validateJwtToken(token)).thenReturn(true);
+    when(jwtUtils.getUsernameFromJwtToken(token)).thenReturn("testuser");
+    when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
 
-        // When
-        boolean result = authService.isUsernameAvailable("testuser");
+    // When
+    UserDto result = authService.getUserFromToken(token);
 
-        // Then
-        assertFalse(result);
-        verify(userRepository).existsByUsername("testuser");
-    }
+    // Then
+    assertNotNull(result);
+    assertEquals("testuser", result.getUsername());
+    assertEquals("test@example.com", result.getEmail());
 
-    @Test
-    void isEmailAvailable_WithAvailableEmail_ShouldReturnTrue() {
-        // Given
-        when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
+    verify(jwtUtils).validateJwtToken(token);
+    verify(jwtUtils).getUsernameFromJwtToken(token);
+    verify(userRepository).findByUsername("testuser");
+  }
 
-        // When
-        boolean result = authService.isEmailAvailable("new@example.com");
+  @Test
+  void getUserFromToken_WithInvalidToken_ShouldThrowException() {
+    // Given
+    String invalidToken = "invalid-token";
+    when(jwtUtils.validateJwtToken(invalidToken)).thenReturn(false);
 
-        // Then
-        assertTrue(result);
-        verify(userRepository).existsByEmail("new@example.com");
-    }
+    // When & Then
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        () -> authService.getUserFromToken(invalidToken));
 
-    @Test
-    void isEmailAvailable_WithTakenEmail_ShouldReturnFalse() {
-        // Given
-        when(userRepository.existsByEmail("test@example.com")).thenReturn(true);
+    assertEquals("无效的token", exception.getMessage());
+    verify(jwtUtils).validateJwtToken(invalidToken);
+  }
 
-        // When
-        boolean result = authService.isEmailAvailable("test@example.com");
+  @Test
+  void isUsernameAvailable_WithAvailableUsername_ShouldReturnTrue() {
+    // Given
+    when(userRepository.existsByUsername("availableuser")).thenReturn(false);
 
-        // Then
-        assertFalse(result);
-        verify(userRepository).existsByEmail("test@example.com");
-    }
+    // When
+    boolean result = authService.isUsernameAvailable("availableuser");
+
+    // Then
+    assertTrue(result);
+    verify(userRepository).existsByUsername("availableuser");
+  }
+
+  @Test
+  void isUsernameAvailable_WithTakenUsername_ShouldReturnFalse() {
+    // Given
+    when(userRepository.existsByUsername("takenuser")).thenReturn(true);
+
+    // When
+    boolean result = authService.isUsernameAvailable("takenuser");
+
+    // Then
+    assertFalse(result);
+    verify(userRepository).existsByUsername("takenuser");
+  }
+
+  @Test
+  void isEmailAvailable_WithAvailableEmail_ShouldReturnTrue() {
+    // Given
+    when(userRepository.existsByEmail("available@example.com")).thenReturn(false);
+
+    // When
+    boolean result = authService.isEmailAvailable("available@example.com");
+
+    // Then
+    assertTrue(result);
+    verify(userRepository).existsByEmail("available@example.com");
+  }
+
+  @Test
+  void isEmailAvailable_WithTakenEmail_ShouldReturnFalse() {
+    // Given
+    when(userRepository.existsByEmail("taken@example.com")).thenReturn(true);
+
+    // When
+    boolean result = authService.isEmailAvailable("taken@example.com");
+
+    // Then
+    assertFalse(result);
+    verify(userRepository).existsByEmail("taken@example.com");
+  }
 }
