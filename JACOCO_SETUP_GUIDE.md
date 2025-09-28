@@ -27,21 +27,21 @@
 
 ```bash
 # 运行所有测试并生成覆盖率报告
-./run-all-tests.sh
+./ut-scripts/run-all-tests.sh
 ```
 
 ### 方法2: 使用专门的覆盖率报告脚本
 
 ```bash
 # 生成详细的覆盖率报告
-./generate-coverage-report.sh
+./ut-scripts/generate-coverage-report.sh
 ```
 
 ### 方法3: 使用简化的测试脚本
 
 ```bash
 # 快速测试Jacoco配置
-./test-jacoco.sh
+./ut-scripts/test-jacoco.sh
 ```
 
 ### 方法4: 直接使用Maven命令
@@ -58,15 +58,33 @@ mvn verify
 
 覆盖率报告生成在以下位置：
 
+### 原始位置
 - **HTML报告**: `target/site/jacoco/index.html`
 - **CSV报告**: `target/site/jacoco/jacoco.csv`
 - **XML报告**: `target/site/jacoco/jacoco.xml`
+
+### ut-scripts目录（推荐）
+- **HTML报告**: `ut-scripts/coverage-reports/jacoco/index.html`
+- **CSV报告**: `ut-scripts/coverage-reports/jacoco/jacoco.csv`
+- **XML报告**: `ut-scripts/coverage-reports/jacoco/jacoco.xml`
+- **历史备份**: `ut-scripts/coverage-reports/jacoco_YYYYMMDD_HHMMSS/`
 
 ## 查看报告
 
 ### 在浏览器中查看
 
 ```bash
+# 查看ut-scripts目录中的报告（推荐）
+# macOS
+open ut-scripts/coverage-reports/jacoco/index.html
+
+# Linux
+xdg-open ut-scripts/coverage-reports/jacoco/index.html
+
+# Windows
+start ut-scripts/coverage-reports/jacoco/index.html
+
+# 或者查看原始位置
 # macOS
 open target/site/jacoco/index.html
 
@@ -173,10 +191,12 @@ stage('Test with Coverage') {
 ## 相关文件
 
 - `pom.xml`: Maven配置
-- `run-all-tests.sh`: 完整测试脚本
-- `generate-coverage-report.sh`: 覆盖率报告生成脚本
-- `test-jacoco.sh`: Jacoco配置测试脚本
-- `target/site/jacoco/`: 覆盖率报告目录
+- `ut-scripts/run-all-tests.sh`: 完整测试脚本
+- `ut-scripts/generate-coverage-report.sh`: 覆盖率报告生成脚本
+- `ut-scripts/test-jacoco.sh`: Jacoco配置测试脚本
+- `ut-scripts/README.md`: ut-scripts目录说明文档
+- `ut-scripts/coverage-reports/`: 覆盖率报告存储目录
+- `target/site/jacoco/`: 原始覆盖率报告目录
 
 ## 总结
 

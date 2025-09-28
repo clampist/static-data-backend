@@ -1,0 +1,24 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+JaCoCo Coverage Report,com.staticdata.platform.enums,UserRole,0,15,0,0,0,3,0,1,0,1
+JaCoCo Coverage Report,com.staticdata.platform.dto,LoginResponse,0,15,0,0,0,6,0,1,0,1
+JaCoCo Coverage Report,com.staticdata.platform.dto,ApiResponse,72,0,0,0,18,0,7,0,7,0
+JaCoCo Coverage Report,com.staticdata.platform,StaticDataPlatformApplication,0,8,0,0,0,3,0,2,0,2
+JaCoCo Coverage Report,com.staticdata.platform.exception,GlobalExceptionHandler,262,125,10,2,54,23,14,6,8,6
+JaCoCo Coverage Report,com.staticdata.platform.exception,ResourceNotFoundException,5,4,0,0,2,2,1,1,1,1
+JaCoCo Coverage Report,com.staticdata.platform.exception,BusinessException,5,4,0,0,2,2,1,1,1,1
+JaCoCo Coverage Report,com.staticdata.platform.config,SecurityConfig,0,333,0,0,0,38,0,8,0,8
+JaCoCo Coverage Report,com.staticdata.platform.entity,AuditLog.ActionType,0,51,0,0,0,2,0,1,0,1
+JaCoCo Coverage Report,com.staticdata.platform.entity,DataFile.ColumnDefinition.DataType,0,45,0,0,0,2,0,1,0,1
+JaCoCo Coverage Report,com.staticdata.platform.entity,DataFile.AccessLevel,0,15,0,0,0,2,0,1,0,1
+JaCoCo Coverage Report,com.staticdata.platform.entity,BaseEntity,0,11,0,0,0,5,0,2,0,2
+JaCoCo Coverage Report,com.staticdata.platform.entity,OrganizationNode.NodeType,0,27,0,0,0,2,0,1,0,1
+JaCoCo Coverage Report,com.staticdata.platform.controller,AuthController,116,192,10,12,27,46,10,10,0,9
+JaCoCo Coverage Report,com.staticdata.platform.controller,OrganizationController,33,118,0,0,8,32,2,9,2,9
+JaCoCo Coverage Report,com.staticdata.platform.controller,DataFileController,24,144,0,0,6,34,2,12,2,12
+JaCoCo Coverage Report,com.staticdata.platform.service,OrganizationService,210,422,23,31,38,101,28,25,9,17
+JaCoCo Coverage Report,com.staticdata.platform.service,AuthService,131,268,7,7,22,51,8,11,2,10
+JaCoCo Coverage Report,com.staticdata.platform.service,DataFileService,251,909,31,45,36,177,41,36,13,26
+JaCoCo Coverage Report,com.staticdata.platform.security,CustomUserDetailsService,65,29,3,1,14,7,5,2,3,2
+JaCoCo Coverage Report,com.staticdata.platform.security,UserPrincipal,1,49,2,2,0,15,2,8,0,8
+JaCoCo Coverage Report,com.staticdata.platform.security,JwtAuthenticationFilter,8,99,8,12,3,23,8,6,0,4
+JaCoCo Coverage Report,com.staticdata.platform.util,JwtUtils,143,70,2,0,47,23,5,7,4,7

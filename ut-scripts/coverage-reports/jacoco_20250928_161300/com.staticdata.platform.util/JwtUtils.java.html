@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JwtUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">static-data-platform</a> &gt; <a href="index.source.html" class="el_package">com.staticdata.platform.util</a> &gt; <span class="el_source">JwtUtils.java</span></div><h1>JwtUtils.java</h1><pre class="source lang-java linenums">package com.staticdata.platform.util;
+
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
+
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+
+/**
+ * JWT工具类，用于生成、验证和解析JWT token
+ */
+@Component
+<span class="fc" id="L19">@Slf4j</span>
+<span class="fc" id="L20">public class JwtUtils {</span>
+
+    @Value(&quot;${app.jwt.secret}&quot;)
+    private String jwtSecret;
+
+    @Value(&quot;${app.jwt.expiration}&quot;)
+    private int jwtExpirationMs;
+
+    /**
+     * 根据用户认证信息生成JWT token
+     */
+    public String generateJwtToken(Authentication authentication) {
+<span class="nc" id="L32">        UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();</span>
+<span class="nc" id="L33">        return generateJwtToken(userPrincipal.getUsername());</span>
+    }
+
+    /**
+     * 根据用户名生成JWT token
+     */
+    public String generateJwtToken(String username) {
+<span class="fc" id="L40">        Date expiryDate = new Date((new Date()).getTime() + jwtExpirationMs);</span>
+        
+<span class="fc" id="L42">        return Jwts.builder()</span>
+<span class="fc" id="L43">                .setSubject(username)</span>
+<span class="fc" id="L44">                .setIssuedAt(new Date())</span>
+<span class="fc" id="L45">                .setExpiration(expiryDate)</span>
+<span class="fc" id="L46">                .signWith(getSigningKey(), SignatureAlgorithm.HS512)</span>
+<span class="fc" id="L47">                .compact();</span>
+    }
+
+    /**
+     * 从JWT token中获取用户名
+     */
+    public String getUsernameFromJwtToken(String token) {
+<span class="fc" id="L54">        return Jwts.parser()</span>
+<span class="fc" id="L55">                .setSigningKey(getSigningKey())</span>
+<span class="fc" id="L56">                .build()</span>
+<span class="fc" id="L57">                .parseClaimsJws(token)</span>
+<span class="fc" id="L58">                .getBody()</span>
+<span class="fc" id="L59">                .getSubject();</span>
+    }
+
+    /**
+     * 验证JWT token是否有效
+     */
+    public boolean validateJwtToken(String authToken) {
+        try {
+<span class="fc" id="L67">            Jwts.parser()</span>
+<span class="fc" id="L68">                .setSigningKey(getSigningKey())</span>
+<span class="fc" id="L69">                .build()</span>
+<span class="fc" id="L70">                .parseClaimsJws(authToken);</span>
+<span class="fc" id="L71">            return true;</span>
+<span class="fc" id="L72">        } catch (MalformedJwtException e) {</span>
+<span class="fc" id="L73">            log.error(&quot;Invalid JWT token: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L74">        } catch (ExpiredJwtException e) {</span>
+<span class="nc" id="L75">            log.error(&quot;JWT token is expired: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L76">        } catch (UnsupportedJwtException e) {</span>
+<span class="nc" id="L77">            log.error(&quot;JWT token is unsupported: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L78">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L79">            log.error(&quot;JWT claims string is empty: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L80">        } catch (Exception e) {</span>
+<span class="nc" id="L81">            log.error(&quot;JWT validation failed: {}&quot;, e.getMessage());</span>
+<span class="pc" id="L82">        }</span>
+<span class="fc" id="L83">        return false;</span>
+    }
+
+    /**
+     * 检查token是否即将过期（剩余时间少于30分钟）
+     */
+    public boolean isTokenExpiringSoon(String token) {
+        try {
+<span class="fc" id="L91">            Claims claims = Jwts.parser()</span>
+<span class="fc" id="L92">                .setSigningKey(getSigningKey())</span>
+<span class="fc" id="L93">                .build()</span>
+<span class="fc" id="L94">                .parseClaimsJws(token)</span>
+<span class="fc" id="L95">                .getBody();</span>
+            
+<span class="fc" id="L97">            Date expiration = claims.getExpiration();</span>
+<span class="fc" id="L98">            Date now = new Date();</span>
+<span class="fc" id="L99">            long timeUntilExpiration = expiration.getTime() - now.getTime();</span>
+            
+            // 如果剩余时间少于30分钟（1800000毫秒），返回true
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">            return timeUntilExpiration &lt; 1800000;</span>
+<span class="nc" id="L103">        } catch (Exception e) {</span>
+<span class="nc" id="L104">            log.error(&quot;Error checking token expiration: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L105">            return true; // 如果无法解析，假设即将过期</span>
+        }
+    }
+
+    /**
+     * 刷新JWT token
+     */
+    public String refreshToken(String token) {
+        try {
+<span class="fc" id="L114">            Claims claims = Jwts.parser()</span>
+<span class="fc" id="L115">                .setSigningKey(getSigningKey())</span>
+<span class="fc" id="L116">                .build()</span>
+<span class="fc" id="L117">                .parseClaimsJws(token)</span>
+<span class="fc" id="L118">                .getBody();</span>
+            
+<span class="fc" id="L120">            String username = claims.getSubject();</span>
+<span class="fc" id="L121">            return generateJwtToken(username);</span>
+<span class="fc" id="L122">        } catch (Exception e) {</span>
+<span class="fc" id="L123">            log.error(&quot;Error refreshing token: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L124">            throw new RuntimeException(&quot;Invalid token for refresh&quot;);</span>
+        }
+    }
+
+    /**
+     * 获取token的剩余有效时间（毫秒）
+     */
+    public long getTokenRemainingTime(String token) {
+        try {
+<span class="fc" id="L133">            Claims claims = Jwts.parser()</span>
+<span class="fc" id="L134">                .setSigningKey(getSigningKey())</span>
+<span class="fc" id="L135">                .build()</span>
+<span class="fc" id="L136">                .parseClaimsJws(token)</span>
+<span class="fc" id="L137">                .getBody();</span>
+            
+<span class="fc" id="L139">            Date expiration = claims.getExpiration();</span>
+<span class="fc" id="L140">            Date now = new Date();</span>
+<span class="fc" id="L141">            return expiration.getTime() - now.getTime();</span>
+<span class="fc" id="L142">        } catch (Exception e) {</span>
+<span class="fc" id="L143">            log.error(&quot;Error getting token remaining time: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L144">            return 0;</span>
+        }
+    }
+
+    /**
+     * 获取JWT过期时间（毫秒）
+     */
+    public long getJwtExpirationMs() {
+<span class="fc" id="L152">        return jwtExpirationMs;</span>
+    }
+
+    /**
+     * 获取签名密钥
+     */
+    private SecretKey getSigningKey() {
+<span class="fc" id="L159">        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);</span>
+<span class="fc" id="L160">        return Keys.hmacShaKeyFor(keyBytes);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GlobalExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">static-data-platform</a> &gt; <a href="index.source.html" class="el_package">com.staticdata.platform.exception</a> &gt; <span class="el_source">GlobalExceptionHandler.java</span></div><h1>GlobalExceptionHandler.java</h1><pre class="source lang-java linenums">package com.staticdata.platform.exception;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * 全局异常处理器 统一处理应用中的各种异常并返回标准的错误响应
+ */
+@RestControllerAdvice
+<span class="fc" id="L23">@Slf4j</span>
+<span class="fc" id="L24">public class GlobalExceptionHandler {</span>
+
+    /**
+     * 处理认证失败异常
+     */
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleBadCredentialsException(BadCredentialsException ex,
+            WebRequest request) {
+
+<span class="nc" id="L33">        log.warn(&quot;Authentication failed: {}&quot;, ex.getMessage());</span>
+
+<span class="nc" id="L35">        ErrorResponse errorResponse = ErrorResponse.builder().timestamp(LocalDateTime.now())</span>
+<span class="nc" id="L36">                .status(HttpStatus.UNAUTHORIZED.value()).error(&quot;Authentication Failed&quot;)</span>
+<span class="nc" id="L37">                .message(&quot;用户名或密码错误&quot;).path(request.getDescription(false)).build();</span>
+
+<span class="nc" id="L39">        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);</span>
+    }
+
+    /**
+     * 处理用户不存在异常
+     */
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleUsernameNotFoundException(
+            UsernameNotFoundException ex, WebRequest request) {
+
+<span class="nc" id="L49">        log.warn(&quot;User not found: {}&quot;, ex.getMessage());</span>
+
+<span class="nc" id="L51">        ErrorResponse errorResponse = ErrorResponse.builder().timestamp(LocalDateTime.now())</span>
+<span class="nc" id="L52">                .status(HttpStatus.UNAUTHORIZED.value()).error(&quot;User Not Found&quot;).message(&quot;用户不存在&quot;)</span>
+<span class="nc" id="L53">                .path(request.getDescription(false)).build();</span>
+
+<span class="nc" id="L55">        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);</span>
+    }
+
+    /**
+     * 处理用户账户被禁用异常
+     */
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleDisabledException(DisabledException ex,
+            WebRequest request) {
+
+<span class="nc" id="L65">        log.warn(&quot;Account disabled: {}&quot;, ex.getMessage());</span>
+
+<span class="nc" id="L67">        ErrorResponse errorResponse = ErrorResponse.builder().timestamp(LocalDateTime.now())</span>
+<span class="nc" id="L68">                .status(HttpStatus.FORBIDDEN.value()).error(&quot;Account Disabled&quot;).message(&quot;账户已被禁用&quot;)</span>
+<span class="nc" id="L69">                .path(request.getDescription(false)).build();</span>
+
+<span class="nc" id="L71">        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);</span>
+    }
+
+    /**
+     * 处理参数校验异常
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleValidationExceptions(
+            MethodArgumentNotValidException ex, WebRequest request) {
+
+<span class="nc" id="L81">        log.warn(&quot;Validation failed: {}&quot;, ex.getMessage());</span>
+
+<span class="nc" id="L83">        Map&lt;String, String&gt; errors = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L84">        ex.getBindingResult().getAllErrors().forEach((error) -&gt; {</span>
+<span class="nc" id="L85">            String fieldName = ((FieldError) error).getField();</span>
+<span class="nc" id="L86">            String errorMessage = error.getDefaultMessage();</span>
+<span class="nc" id="L87">            errors.put(fieldName, errorMessage);</span>
+<span class="nc" id="L88">        });</span>
+
+<span class="nc" id="L90">        ErrorResponse errorResponse = ErrorResponse.builder().timestamp(LocalDateTime.now())</span>
+<span class="nc" id="L91">                .status(HttpStatus.BAD_REQUEST.value()).error(&quot;Validation Failed&quot;)</span>
+<span class="nc" id="L92">                .message(&quot;请求参数校验失败&quot;).path(request.getDescription(false)).details(errors).build();</span>
+
+<span class="nc" id="L94">        return ResponseEntity.badRequest().body(errorResponse);</span>
+    }
+
+    /**
+     * 处理非法参数异常
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleIllegalArgumentException(IllegalArgumentException ex,
+            WebRequest request) {
+
+<span class="fc" id="L104">        log.warn(&quot;Illegal argument: {}&quot;, ex.getMessage());</span>
+
+<span class="fc" id="L106">        ErrorResponse errorResponse = ErrorResponse.builder().timestamp(LocalDateTime.now())</span>
+<span class="fc" id="L107">                .status(HttpStatus.BAD_REQUEST.value()).error(&quot;Bad Request&quot;)</span>
+<span class="fc" id="L108">                .message(ex.getMessage()).path(request.getDescription(false)).build();</span>
+
+<span class="fc" id="L110">        return ResponseEntity.badRequest().body(errorResponse);</span>
+    }
+
+    /**
+     * 处理JWT相关异常
+     */
+    @ExceptionHandler({io.jsonwebtoken.ExpiredJwtException.class,
+            io.jsonwebtoken.UnsupportedJwtException.class,
+            io.jsonwebtoken.MalformedJwtException.class,
+            io.jsonwebtoken.security.SignatureException.class})
+    public ResponseEntity&lt;ErrorResponse&gt; handleJwtException(Exception ex, WebRequest request) {
+
+<span class="nc" id="L122">        log.warn(&quot;JWT error: {}&quot;, ex.getMessage());</span>
+
+        String message;
+<span class="nc bnc" id="L125" title="All 2 branches missed.">        if (ex instanceof io.jsonwebtoken.ExpiredJwtException) {</span>
+<span class="nc" id="L126">            message = &quot;token已过期&quot;;</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">        } else if (ex instanceof io.jsonwebtoken.UnsupportedJwtException) {</span>
+<span class="nc" id="L128">            message = &quot;不支持的token格式&quot;;</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">        } else if (ex instanceof io.jsonwebtoken.MalformedJwtException) {</span>
+<span class="nc" id="L130">            message = &quot;token格式错误&quot;;</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">        } else if (ex instanceof io.jsonwebtoken.security.SignatureException) {</span>
+<span class="nc" id="L132">            message = &quot;token签名验证失败&quot;;</span>
+        } else {
+<span class="nc" id="L134">            message = &quot;token无效&quot;;</span>
+        }
+
+<span class="nc" id="L137">        ErrorResponse errorResponse = ErrorResponse.builder().timestamp(LocalDateTime.now())</span>
+<span class="nc" id="L138">                .status(HttpStatus.UNAUTHORIZED.value()).error(&quot;JWT Error&quot;).message(message)</span>
+<span class="nc" id="L139">                .path(request.getDescription(false)).build();</span>
+
+<span class="nc" id="L141">        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);</span>
+    }
+
+    /**
+     * 处理访问拒绝异常
+     */
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleAccessDeniedException(
+            org.springframework.security.access.AccessDeniedException ex, WebRequest request) {
+
+<span class="nc" id="L151">        log.warn(&quot;Access denied: {}&quot;, ex.getMessage());</span>
+
+<span class="nc" id="L153">        ErrorResponse errorResponse = ErrorResponse.builder().timestamp(LocalDateTime.now())</span>
+<span class="nc" id="L154">                .status(HttpStatus.FORBIDDEN.value()).error(&quot;Access Denied&quot;).message(&quot;没有访问权限&quot;)</span>
+<span class="nc" id="L155">                .path(request.getDescription(false)).build();</span>
+
+<span class="nc" id="L157">        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);</span>
+    }
+
+    /**
+     * 处理资源不存在异常
+     */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleResourceNotFoundException(
+            ResourceNotFoundException ex, WebRequest request) {
+
+<span class="nc" id="L167">        log.warn(&quot;Resource not found: {}&quot;, ex.getMessage());</span>
+
+<span class="nc" id="L169">        ErrorResponse errorResponse = ErrorResponse.builder().timestamp(LocalDateTime.now())</span>
+<span class="nc" id="L170">                .status(HttpStatus.NOT_FOUND.value()).error(&quot;Resource Not Found&quot;)</span>
+<span class="nc" id="L171">                .message(ex.getMessage()).path(request.getDescription(false)).build();</span>
+
+<span class="nc" id="L173">        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);</span>
+    }
+
+    /**
+     * 处理业务异常
+     */
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleBusinessException(BusinessException ex,
+            WebRequest request) {
+
+<span class="nc" id="L183">        log.warn(&quot;Business exception: {}&quot;, ex.getMessage());</span>
+
+<span class="nc" id="L185">        ErrorResponse errorResponse = ErrorResponse.builder().timestamp(LocalDateTime.now())</span>
+<span class="nc" id="L186">                .status(HttpStatus.BAD_REQUEST.value()).error(&quot;Business Error&quot;)</span>
+<span class="nc" id="L187">                .message(ex.getMessage()).path(request.getDescription(false)).build();</span>
+
+<span class="nc" id="L189">        return ResponseEntity.badRequest().body(errorResponse);</span>
+    }
+
+    /**
+     * 处理运行时异常
+     */
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleRuntimeException(RuntimeException ex,
+            WebRequest request) {
+
+<span class="fc" id="L199">        log.error(&quot;Runtime exception: {}&quot;, ex.getMessage(), ex);</span>
+
+        // 检查是否是认证相关的异常
+<span class="pc bpc" id="L202" title="2 of 4 branches missed.">        if (ex.getMessage() != null &amp;&amp; ex.getMessage().contains(&quot;Invalid credentials&quot;)) {</span>
+<span class="fc" id="L203">            ErrorResponse errorResponse = ErrorResponse.builder().timestamp(LocalDateTime.now())</span>
+<span class="fc" id="L204">                    .status(HttpStatus.UNAUTHORIZED.value()).error(&quot;Authentication Failed&quot;)</span>
+<span class="fc" id="L205">                    .message(&quot;用户名或密码错误&quot;).path(request.getDescription(false)).build();</span>
+
+<span class="fc" id="L207">            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);</span>
+        }
+
+        // 其他运行时异常
+<span class="nc" id="L211">        ErrorResponse errorResponse = ErrorResponse.builder().timestamp(LocalDateTime.now())</span>
+<span class="nc" id="L212">                .status(HttpStatus.INTERNAL_SERVER_ERROR.value()).error(&quot;Internal Server Error&quot;)</span>
+<span class="nc" id="L213">                .message(&quot;服务器内部错误&quot;).path(request.getDescription(false)).build();</span>
+
+<span class="nc" id="L215">        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);</span>
+    }
+
+    /**
+     * 处理通用异常
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleGenericException(Exception ex, WebRequest request) {
+
+<span class="nc" id="L224">        log.error(&quot;Unexpected exception: {}&quot;, ex.getMessage(), ex);</span>
+
+<span class="nc" id="L226">        ErrorResponse errorResponse = ErrorResponse.builder().timestamp(LocalDateTime.now())</span>
+<span class="nc" id="L227">                .status(HttpStatus.INTERNAL_SERVER_ERROR.value()).error(&quot;Internal Server Error&quot;)</span>
+<span class="nc" id="L228">                .message(&quot;服务器内部错误&quot;).path(request.getDescription(false)).build();</span>
+
+<span class="nc" id="L230">        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

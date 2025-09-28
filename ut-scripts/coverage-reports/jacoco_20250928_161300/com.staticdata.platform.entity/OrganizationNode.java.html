@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrganizationNode.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">static-data-platform</a> &gt; <a href="index.source.html" class="el_package">com.staticdata.platform.entity</a> &gt; <span class="el_source">OrganizationNode.java</span></div><h1>OrganizationNode.java</h1><pre class="source lang-java linenums">package com.staticdata.platform.entity;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.Accessors;
+
+import java.util.List;
+
+/**
+ * 组织节点实体（部门-团队-业务方向-模块的树状结构）
+ */
+@Data
+@EqualsAndHashCode(callSuper = true)
+@Accessors(chain = true)
+@Entity
+@Table(name = &quot;organization_nodes&quot;)
+public class OrganizationNode extends BaseEntity {
+    
+    @Column(nullable = false)
+    private String name;
+    
+    private String description;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private NodeType type;
+    
+    @Column(name = &quot;parent_id&quot;)
+    private Long parentId;
+    
+    @Column(name = &quot;sort_order&quot;)
+    private Integer sortOrder = 0;
+    
+    @OneToMany(mappedBy = &quot;organizationNode&quot;, cascade = CascadeType.ALL)
+    private List&lt;DataFile&gt; dataFiles;
+    
+<span class="fc" id="L38">    public enum NodeType {</span>
+<span class="fc" id="L39">        DEPARTMENT, TEAM, BUSINESS_DIRECTION, MODULE</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DataFileService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">static-data-platform</a> &gt; <a href="index.source.html" class="el_package">com.staticdata.platform.service</a> &gt; <span class="el_source">DataFileService.java</span></div><h1>DataFileService.java</h1><pre class="source lang-java linenums">package com.staticdata.platform.service;
+
+import com.staticdata.platform.dto.*;
+import com.staticdata.platform.entity.DataFile;
+import com.staticdata.platform.entity.OrganizationNode;
+import com.staticdata.platform.entity.User;
+import com.staticdata.platform.exception.BusinessException;
+import com.staticdata.platform.exception.ResourceNotFoundException;
+import com.staticdata.platform.repository.DataFileRepository;
+import com.staticdata.platform.repository.OrganizationNodeRepository;
+import com.staticdata.platform.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+<span class="fc" id="L30">@Slf4j</span>
+public class DataFileService {
+
+  private final DataFileRepository dataFileRepository;
+  private final OrganizationNodeRepository organizationNodeRepository;
+  private final UserRepository userRepository;
+
+  @Transactional
+  public DataFileDto createDataFile(CreateDataFileRequest request) {
+<span class="nc" id="L39">    log.info(&quot;Creating data file: {}&quot;, request.getName());</span>
+
+    // 验证组织节点是否存在
+<span class="nc" id="L42">    OrganizationNode organizationNode =</span>
+<span class="nc" id="L43">        organizationNodeRepository.findById(request.getOrganizationNodeId()).orElseThrow(</span>
+<span class="nc" id="L44">            () -&gt; new ResourceNotFoundException(&quot;组织节点不存在，ID: &quot; + request.getOrganizationNodeId()));</span>
+
+    // 验证模块类型（数据文件只能挂在MODULE类型的节点下）
+<span class="nc bnc" id="L47" title="All 2 branches missed.">    if (organizationNode.getType() != OrganizationNode.NodeType.MODULE) {</span>
+<span class="nc" id="L48">      throw new BusinessException(&quot;数据文件只能挂在功能模块下，当前节点类型为: &quot; + organizationNode.getType());</span>
+    }
+
+    // 检查文件名在同一组织节点下是否唯一
+<span class="nc bnc" id="L52" title="All 2 branches missed.">    if (dataFileRepository.existsByNameAndOrganizationNodeId(request.getName(),</span>
+<span class="nc" id="L53">        request.getOrganizationNodeId())) {</span>
+<span class="nc" id="L54">      throw new BusinessException(&quot;在同一模块下，数据文件名已存在: &quot; + request.getName());</span>
+    }
+
+    // 获取当前用户
+<span class="nc" id="L58">    String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();</span>
+<span class="nc" id="L59">    User owner = userRepository.findByUsername(currentUsername)</span>
+<span class="nc" id="L60">        .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;用户不存在: &quot; + currentUsername));</span>
+
+    // 创建数据文件实体
+<span class="nc" id="L63">    DataFile dataFile = new DataFile();</span>
+<span class="nc" id="L64">    dataFile.setName(request.getName());</span>
+<span class="nc" id="L65">    dataFile.setDescription(request.getDescription());</span>
+<span class="nc" id="L66">    dataFile.setOrganizationNode(organizationNode);</span>
+<span class="nc" id="L67">    dataFile.setOwner(owner);</span>
+<span class="nc" id="L68">    dataFile.setAccessLevel(request.getAccessLevel());</span>
+
+    // 处理列定义
+<span class="nc bnc" id="L71" title="All 2 branches missed.">    if (request.getColumnDefinitions() != null) {</span>
+<span class="nc" id="L72">      List&lt;DataFile.ColumnDefinition&gt; columnDefinitions = request.getColumnDefinitions().stream()</span>
+<span class="nc" id="L73">          .map(this::convertToColumnDefinition).collect(Collectors.toList());</span>
+<span class="nc" id="L74">      dataFile.setColumnDefinitions(columnDefinitions);</span>
+<span class="nc" id="L75">      dataFile.setColumnCount(columnDefinitions.size());</span>
+    }
+
+    // 处理数据行
+<span class="nc bnc" id="L79" title="All 2 branches missed.">    if (request.getDataRows() != null) {</span>
+<span class="nc" id="L80">      dataFile.setDataRows(request.getDataRows());</span>
+<span class="nc" id="L81">      dataFile.setRowCount(request.getDataRows().size());</span>
+    }
+
+    // 生成文件哈希
+<span class="nc" id="L85">    String fileHash = generateFileHash(dataFile);</span>
+<span class="nc" id="L86">    dataFile.setFileHash(fileHash);</span>
+
+    // 设置审计信息
+<span class="nc" id="L89">    dataFile.setCreatedBy(currentUsername);</span>
+<span class="nc" id="L90">    dataFile.setUpdatedBy(currentUsername);</span>
+
+<span class="nc" id="L92">    DataFile savedDataFile = dataFileRepository.save(dataFile);</span>
+<span class="nc" id="L93">    log.info(&quot;Data file created with ID: {}&quot;, savedDataFile.getId());</span>
+
+<span class="nc" id="L95">    return convertToDto(savedDataFile);</span>
+  }
+
+  @Transactional
+  public DataFileDto updateDataFile(Long id, UpdateDataFileRequest request) {
+<span class="nc" id="L100">    log.info(&quot;Updating data file with ID: {}&quot;, id);</span>
+<span class="nc" id="L101">    DataFile existingDataFile = dataFileRepository.findById(id)</span>
+<span class="nc" id="L102">        .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;数据文件不存在，ID: &quot; + id));</span>
+
+    // 检查权限（只有所有者可以修改）
+<span class="nc" id="L105">    String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">    if (!existingDataFile.getOwner().getUsername().equals(currentUsername)) {</span>
+<span class="nc" id="L107">      throw new BusinessException(&quot;只有文件所有者可以修改数据文件&quot;);</span>
+    }
+
+    // 更新基本信息
+<span class="nc bnc" id="L111" title="All 4 branches missed.">    if (request.getName() != null &amp;&amp; !request.getName().equals(existingDataFile.getName())) {</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">      if (dataFileRepository.existsByNameAndOrganizationNodeIdAndIdIsNot(request.getName(),</span>
+<span class="nc" id="L113">          existingDataFile.getOrganizationNode().getId(), id)) {</span>
+<span class="nc" id="L114">        throw new BusinessException(&quot;在同一模块下，数据文件名已存在: &quot; + request.getName());</span>
+      }
+<span class="nc" id="L116">      existingDataFile.setName(request.getName());</span>
+    }
+
+<span class="nc bnc" id="L119" title="All 2 branches missed.">    if (request.getDescription() != null) {</span>
+<span class="nc" id="L120">      existingDataFile.setDescription(request.getDescription());</span>
+    }
+
+<span class="nc bnc" id="L123" title="All 2 branches missed.">    if (request.getAccessLevel() != null) {</span>
+<span class="nc" id="L124">      existingDataFile.setAccessLevel(request.getAccessLevel());</span>
+    }
+
+    // 更新列定义
+<span class="nc bnc" id="L128" title="All 2 branches missed.">    if (request.getColumnDefinitions() != null) {</span>
+<span class="nc" id="L129">      List&lt;DataFile.ColumnDefinition&gt; columnDefinitions = request.getColumnDefinitions().stream()</span>
+<span class="nc" id="L130">          .map(this::convertToColumnDefinition).collect(Collectors.toList());</span>
+<span class="nc" id="L131">      existingDataFile.setColumnDefinitions(columnDefinitions);</span>
+<span class="nc" id="L132">      existingDataFile.setColumnCount(columnDefinitions.size());</span>
+    }
+
+    // 更新数据行
+<span class="nc bnc" id="L136" title="All 2 branches missed.">    if (request.getDataRows() != null) {</span>
+<span class="nc" id="L137">      existingDataFile.setDataRows(request.getDataRows());</span>
+<span class="nc" id="L138">      existingDataFile.setRowCount(request.getDataRows().size());</span>
+    }
+
+    // 重新生成文件哈希
+<span class="nc" id="L142">    String newFileHash = generateFileHash(existingDataFile);</span>
+<span class="nc" id="L143">    existingDataFile.setFileHash(newFileHash);</span>
+
+    // 更新审计信息
+<span class="nc" id="L146">    existingDataFile.setUpdatedBy(currentUsername);</span>
+<span class="nc" id="L147">    existingDataFile.setUpdatedAt(LocalDateTime.now());</span>
+
+<span class="nc" id="L149">    DataFile updatedDataFile = dataFileRepository.save(existingDataFile);</span>
+<span class="nc" id="L150">    log.info(&quot;Data file updated with ID: {}&quot;, updatedDataFile.getId());</span>
+
+<span class="nc" id="L152">    return convertToDto(updatedDataFile);</span>
+  }
+
+  @Transactional
+  public void deleteDataFile(Long id) {
+<span class="nc" id="L157">    log.info(&quot;Deleting data file with ID: {}&quot;, id);</span>
+<span class="nc" id="L158">    DataFile existingDataFile = dataFileRepository.findById(id)</span>
+<span class="nc" id="L159">        .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;数据文件不存在，ID: &quot; + id));</span>
+
+    // 检查权限（只有所有者可以删除）
+<span class="nc" id="L162">    String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">    if (!existingDataFile.getOwner().getUsername().equals(currentUsername)) {</span>
+<span class="nc" id="L164">      throw new BusinessException(&quot;只有文件所有者可以删除数据文件&quot;);</span>
+    }
+
+<span class="nc" id="L167">    dataFileRepository.delete(existingDataFile);</span>
+<span class="nc" id="L168">    log.info(&quot;Data file deleted with ID: {}&quot;, id);</span>
+<span class="nc" id="L169">  }</span>
+
+  @Transactional(readOnly = true)
+  public DataFileDto getDataFileById(Long id) {
+<span class="nc" id="L173">    log.debug(&quot;Fetching data file by ID: {}&quot;, id);</span>
+<span class="nc" id="L174">    DataFile dataFile = dataFileRepository.findById(id)</span>
+<span class="nc" id="L175">        .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;数据文件不存在，ID: &quot; + id));</span>
+
+    // 检查访问权限
+<span class="nc" id="L178">    String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();</span>
+<span class="nc" id="L179">    User currentUser = userRepository.findByUsername(currentUsername)</span>
+<span class="nc" id="L180">        .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;用户不存在: &quot; + currentUsername));</span>
+
+<span class="nc bnc" id="L182" title="All 2 branches missed.">    if (dataFile.getAccessLevel() == DataFile.AccessLevel.PRIVATE</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">        &amp;&amp; !dataFile.getOwner().getId().equals(currentUser.getId())) {</span>
+<span class="nc" id="L184">      throw new BusinessException(&quot;没有权限访问此数据文件&quot;);</span>
+    }
+
+<span class="nc" id="L187">    return convertToDto(dataFile);</span>
+  }
+
+  @Transactional(readOnly = true)
+  public Page&lt;DataFileDto&gt; queryDataFiles(DataFileQueryRequest request) {
+<span class="nc" id="L192">    log.debug(&quot;Querying data files with conditions: {}&quot;, request);</span>
+
+    // 构建分页和排序
+<span class="nc" id="L195">    Sort sort = Sort.by(Sort.Direction.fromString(request.getSortDirection()), request.getSortBy());</span>
+<span class="nc" id="L196">    Pageable pageable = PageRequest.of(request.getPage() - 1, request.getSize(), sort);</span>
+
+    // 执行查询 - 使用最简单的查询避免PostgreSQL问题
+<span class="nc" id="L199">    Page&lt;DataFile&gt; dataFiles = dataFileRepository.findAll(pageable);</span>
+
+    // 过滤用户可访问的文件
+<span class="nc" id="L202">    String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();</span>
+<span class="nc" id="L203">    User currentUser = userRepository.findByUsername(currentUsername)</span>
+<span class="nc" id="L204">        .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;用户不存在: &quot; + currentUsername));</span>
+
+<span class="nc" id="L206">    List&lt;DataFileDto&gt; accessibleFiles = dataFiles.getContent().stream()</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">        .filter(df -&gt; df.getAccessLevel() == DataFile.AccessLevel.PUBLIC</span>
+<span class="nc bnc" id="L208" title="All 2 branches missed.">            || df.getOwner().getId().equals(currentUser.getId()))</span>
+<span class="nc" id="L209">        .map(this::convertToDto).collect(Collectors.toList());</span>
+
+<span class="nc" id="L211">    return new org.springframework.data.domain.PageImpl&lt;&gt;(accessibleFiles, pageable,</span>
+<span class="nc" id="L212">        accessibleFiles.size());</span>
+  }
+
+  @Transactional(readOnly = true)
+  public List&lt;DataFileDto&gt; getDataFilesByOrganizationNode(Long organizationNodeId) {
+<span class="nc" id="L217">    log.debug(&quot;Fetching data files for organization node ID: {}&quot;, organizationNodeId);</span>
+<span class="nc" id="L218">    List&lt;DataFile&gt; dataFiles =</span>
+<span class="nc" id="L219">        dataFileRepository.findByOrganizationNodeIdOrderByCreatedAtDesc(organizationNodeId);</span>
+
+    // 过滤用户可访问的文件
+<span class="nc" id="L222">    String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();</span>
+<span class="nc" id="L223">    User currentUser = userRepository.findByUsername(currentUsername)</span>
+<span class="nc" id="L224">        .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;用户不存在: &quot; + currentUsername));</span>
+
+<span class="nc" id="L226">    return dataFiles.stream()</span>
+<span class="nc bnc" id="L227" title="All 2 branches missed.">        .filter(df -&gt; df.getAccessLevel() == DataFile.AccessLevel.PUBLIC</span>
+<span class="nc bnc" id="L228" title="All 2 branches missed.">            || df.getOwner().getId().equals(currentUser.getId()))</span>
+<span class="nc" id="L229">        .map(this::convertToDto).collect(Collectors.toList());</span>
+  }
+
+  @Transactional(readOnly = true)
+  public List&lt;DataFileDto&gt; getDataFilesByOwner(Long ownerId) {
+<span class="nc" id="L234">    log.debug(&quot;Fetching data files for owner ID: {}&quot;, ownerId);</span>
+<span class="nc" id="L235">    List&lt;DataFile&gt; dataFiles = dataFileRepository.findByOwnerIdOrderByCreatedAtDesc(ownerId);</span>
+<span class="nc" id="L236">    return dataFiles.stream().map(this::convertToDto).collect(Collectors.toList());</span>
+  }
+
+  @Transactional(readOnly = true)
+  public List&lt;DataFileDto&gt; searchDataFiles(String keyword) {
+<span class="nc" id="L241">    log.debug(&quot;Searching data files with keyword: {}&quot;, keyword);</span>
+<span class="nc" id="L242">    List&lt;DataFile&gt; dataFiles =</span>
+<span class="nc" id="L243">        dataFileRepository.findByNameContainingIgnoreCaseOrderByCreatedAtDesc(keyword);</span>
+
+    // 过滤用户可访问的文件
+<span class="nc" id="L246">    String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();</span>
+<span class="nc" id="L247">    User currentUser = userRepository.findByUsername(currentUsername)</span>
+<span class="nc" id="L248">        .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;用户不存在: &quot; + currentUsername));</span>
+
+<span class="nc" id="L250">    return dataFiles.stream()</span>
+<span class="nc bnc" id="L251" title="All 2 branches missed.">        .filter(df -&gt; df.getAccessLevel() == DataFile.AccessLevel.PUBLIC</span>
+<span class="nc bnc" id="L252" title="All 2 branches missed.">            || df.getOwner().getId().equals(currentUser.getId()))</span>
+<span class="nc" id="L253">        .map(this::convertToDto).collect(Collectors.toList());</span>
+  }
+
+  @Transactional(readOnly = true)
+  public List&lt;DataFileDto&gt; getDataFilesByDataType(DataFile.ColumnDefinition.DataType dataType) {
+<span class="nc" id="L258">    log.debug(&quot;Fetching data files by data type: {}&quot;, dataType);</span>
+<span class="nc" id="L259">    List&lt;DataFile&gt; allDataFiles = dataFileRepository.findAllDataFiles();</span>
+
+    // 过滤用户可访问的文件和包含指定数据类型的文件
+<span class="nc" id="L262">    String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();</span>
+<span class="nc" id="L263">    User currentUser = userRepository.findByUsername(currentUsername)</span>
+<span class="nc" id="L264">        .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;用户不存在: &quot; + currentUsername));</span>
+
+<span class="nc" id="L266">    return allDataFiles.stream()</span>
+<span class="nc bnc" id="L267" title="All 2 branches missed.">        .filter(df -&gt; df.getAccessLevel() == DataFile.AccessLevel.PUBLIC</span>
+<span class="nc bnc" id="L268" title="All 2 branches missed.">            || df.getOwner().getId().equals(currentUser.getId()))</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">        .filter(df -&gt; df.getColumnDefinitions() != null</span>
+<span class="nc bnc" id="L270" title="All 4 branches missed.">            &amp;&amp; df.getColumnDefinitions().stream().anyMatch(cd -&gt; cd.getDataType() == dataType))</span>
+<span class="nc" id="L271">        .map(this::convertToDto).collect(Collectors.toList());</span>
+  }
+
+  @Transactional(readOnly = true)
+  public List&lt;DataFileDto&gt; getRecentDataFiles(int limit) {
+<span class="nc" id="L276">    log.debug(&quot;Fetching recent data files with limit: {}&quot;, limit);</span>
+<span class="nc" id="L277">    Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, &quot;createdAt&quot;));</span>
+<span class="nc" id="L278">    List&lt;DataFile&gt; dataFiles = dataFileRepository.findRecentDataFiles(pageable);</span>
+
+    // 过滤用户可访问的文件
+<span class="nc" id="L281">    String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();</span>
+<span class="nc" id="L282">    User currentUser = userRepository.findByUsername(currentUsername)</span>
+<span class="nc" id="L283">        .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;用户不存在: &quot; + currentUsername));</span>
+
+<span class="nc" id="L285">    return dataFiles.stream()</span>
+<span class="nc bnc" id="L286" title="All 2 branches missed.">        .filter(df -&gt; df.getAccessLevel() == DataFile.AccessLevel.PUBLIC</span>
+<span class="nc bnc" id="L287" title="All 2 branches missed.">            || df.getOwner().getId().equals(currentUser.getId()))</span>
+<span class="nc" id="L288">        .map(this::convertToDto).collect(Collectors.toList());</span>
+  }
+
+  @Transactional(readOnly = true)
+  public Map&lt;String, Object&gt; getDataFileStatistics() {
+<span class="nc" id="L293">    log.debug(&quot;Fetching data file statistics&quot;);</span>
+
+    // 直接使用Repository方法计算统计信息，避免复杂的查询
+<span class="nc" id="L296">    long totalFiles = dataFileRepository.count();</span>
+<span class="nc" id="L297">    long publicFiles = dataFileRepository.countByAccessLevel(DataFile.AccessLevel.PUBLIC);</span>
+<span class="nc" id="L298">    long privateFiles = dataFileRepository.countByAccessLevel(DataFile.AccessLevel.PRIVATE);</span>
+
+    // 计算平均行数和列数
+<span class="nc" id="L301">    List&lt;DataFile&gt; allFiles = dataFileRepository.findAll();</span>
+<span class="nc bnc" id="L302" title="All 2 branches missed.">    double avgRowCount = allFiles.isEmpty() ? 0.0</span>
+<span class="nc bnc" id="L303" title="All 2 branches missed.">        : allFiles.stream().mapToInt(df -&gt; df.getRowCount() != null ? df.getRowCount() : 0)</span>
+<span class="nc" id="L304">            .average().orElse(0.0);</span>
+<span class="nc bnc" id="L305" title="All 2 branches missed.">    double avgColumnCount = allFiles.isEmpty() ? 0.0</span>
+<span class="nc bnc" id="L306" title="All 2 branches missed.">        : allFiles.stream().mapToInt(df -&gt; df.getColumnCount() != null ? df.getColumnCount() : 0)</span>
+<span class="nc" id="L307">            .average().orElse(0.0);</span>
+
+<span class="nc" id="L309">    Map&lt;String, Object&gt; statistics = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L310">    statistics.put(&quot;totalFiles&quot;, totalFiles);</span>
+<span class="nc" id="L311">    statistics.put(&quot;publicFiles&quot;, publicFiles);</span>
+<span class="nc" id="L312">    statistics.put(&quot;privateFiles&quot;, privateFiles);</span>
+<span class="nc" id="L313">    statistics.put(&quot;avgRowCount&quot;, avgRowCount);</span>
+<span class="nc" id="L314">    statistics.put(&quot;avgColumnCount&quot;, avgColumnCount);</span>
+
+<span class="nc" id="L316">    return statistics;</span>
+  }
+
+  // 私有辅助方法
+  private DataFile.ColumnDefinition convertToColumnDefinition(
+      CreateDataFileRequest.ColumnDefinitionRequest request) {
+<span class="nc" id="L322">    DataFile.ColumnDefinition columnDef = new DataFile.ColumnDefinition();</span>
+<span class="nc" id="L323">    columnDef.setName(request.getName());</span>
+<span class="nc" id="L324">    columnDef.setDataType(request.getDataType());</span>
+<span class="nc" id="L325">    columnDef.setRequired(request.getRequired());</span>
+<span class="nc" id="L326">    columnDef.setDefaultValue(request.getDefaultValue());</span>
+<span class="nc" id="L327">    columnDef.setMaxLength(request.getMaxLength());</span>
+<span class="nc" id="L328">    return columnDef;</span>
+  }
+
+  private DataFile.ColumnDefinition convertToColumnDefinition(
+      UpdateDataFileRequest.ColumnDefinitionRequest request) {
+<span class="nc" id="L333">    DataFile.ColumnDefinition columnDef = new DataFile.ColumnDefinition();</span>
+<span class="nc" id="L334">    columnDef.setName(request.getName());</span>
+<span class="nc" id="L335">    columnDef.setDataType(request.getDataType());</span>
+<span class="nc" id="L336">    columnDef.setRequired(request.getRequired());</span>
+<span class="nc" id="L337">    columnDef.setDefaultValue(request.getDefaultValue());</span>
+<span class="nc" id="L338">    columnDef.setMaxLength(request.getMaxLength());</span>
+<span class="nc" id="L339">    return columnDef;</span>
+  }
+
+  private String generateFileHash(DataFile dataFile) {
+    try {
+<span class="nc" id="L344">      String content = dataFile.getName() + dataFile.getDescription()</span>
+<span class="nc" id="L345">          + dataFile.getColumnDefinitions().toString() + dataFile.getDataRows().toString();</span>
+
+<span class="nc" id="L347">      MessageDigest md = MessageDigest.getInstance(&quot;MD5&quot;);</span>
+<span class="nc" id="L348">      byte[] hashBytes = md.digest(content.getBytes());</span>
+
+<span class="nc" id="L350">      StringBuilder sb = new StringBuilder();</span>
+<span class="nc bnc" id="L351" title="All 2 branches missed.">      for (byte b : hashBytes) {</span>
+<span class="nc" id="L352">        sb.append(String.format(&quot;%02x&quot;, b));</span>
+      }
+<span class="nc" id="L354">      return sb.toString();</span>
+<span class="nc" id="L355">    } catch (NoSuchAlgorithmException e) {</span>
+<span class="nc" id="L356">      throw new RuntimeException(&quot;Error generating file hash&quot;, e);</span>
+    }
+  }
+
+  private String buildOrganizationPath(OrganizationNode node) {
+<span class="nc" id="L361">    List&lt;String&gt; pathParts = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L362">    OrganizationNode current = node;</span>
+
+<span class="nc bnc" id="L364" title="All 2 branches missed.">    while (current != null) {</span>
+<span class="nc" id="L365">      pathParts.add(0, current.getName());</span>
+<span class="nc bnc" id="L366" title="All 2 branches missed.">      current = current.getParentId() != null</span>
+<span class="nc" id="L367">          ? organizationNodeRepository.findById(current.getParentId()).orElse(null)</span>
+<span class="nc" id="L368">          : null;</span>
+    }
+
+<span class="nc" id="L371">    return String.join(&quot;/&quot;, pathParts);</span>
+  }
+
+  private DataFileDto convertToDto(DataFile dataFile) {
+<span class="nc" id="L375">    return DataFileDto.builder().id(dataFile.getId()).name(dataFile.getName())</span>
+<span class="nc" id="L376">        .description(dataFile.getDescription()).fileHash(dataFile.getFileHash())</span>
+<span class="nc" id="L377">        .organizationNodeId(dataFile.getOrganizationNode().getId())</span>
+<span class="nc" id="L378">        .organizationNodeName(dataFile.getOrganizationNode().getName())</span>
+<span class="nc" id="L379">        .organizationNodePath(buildOrganizationPath(dataFile.getOrganizationNode()))</span>
+<span class="nc" id="L380">        .ownerId(dataFile.getOwner().getId())</span>
+<span class="nc bnc" id="L381" title="All 2 branches missed.">        .ownerName(dataFile.getOwner().getFullName() != null ? dataFile.getOwner().getFullName()</span>
+<span class="nc" id="L382">            : dataFile.getOwner().getUsername())</span>
+<span class="nc" id="L383">        .accessLevel(dataFile.getAccessLevel())</span>
+<span class="nc" id="L384">        .columnDefinitions(convertColumnDefinitionsToDto(dataFile.getColumnDefinitions()))</span>
+<span class="nc" id="L385">        .dataRows(dataFile.getDataRows()).rowCount(dataFile.getRowCount())</span>
+<span class="nc" id="L386">        .columnCount(dataFile.getColumnCount()).createdAt(dataFile.getCreatedAt())</span>
+<span class="nc" id="L387">        .updatedAt(dataFile.getUpdatedAt()).createdBy(dataFile.getCreatedBy())</span>
+<span class="nc" id="L388">        .updatedBy(dataFile.getUpdatedBy())</span>
+<span class="nc bnc" id="L389" title="All 2 branches missed.">        .versionCount(dataFile.getVersions() != null ? dataFile.getVersions().size() : 0)</span>
+<span class="nc" id="L390">        .lastModifiedBy(dataFile.getUpdatedBy()).lastModifiedAt(dataFile.getUpdatedAt()).build();</span>
+  }
+
+  private List&lt;DataFileDto.ColumnDefinitionDto&gt; convertColumnDefinitionsToDto(
+      List&lt;DataFile.ColumnDefinition&gt; columnDefinitions) {
+<span class="nc bnc" id="L395" title="All 2 branches missed.">    if (columnDefinitions == null) {</span>
+<span class="nc" id="L396">      return new ArrayList&lt;&gt;();</span>
+    }
+
+<span class="nc" id="L399">    return columnDefinitions.stream()</span>
+<span class="nc" id="L400">        .map(cd -&gt; DataFileDto.ColumnDefinitionDto.builder().name(cd.getName())</span>
+<span class="nc" id="L401">            .dataType(cd.getDataType()).required(cd.getRequired())</span>
+<span class="nc" id="L402">            .defaultValue(cd.getDefaultValue()).maxLength(cd.getMaxLength()).build())</span>
+<span class="nc" id="L403">        .collect(Collectors.toList());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

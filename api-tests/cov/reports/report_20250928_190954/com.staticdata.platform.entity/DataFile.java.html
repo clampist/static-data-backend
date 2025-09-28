@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DataFile.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.staticdata.platform.entity</a> &gt; <span class="el_source">DataFile.java</span></div><h1>DataFile.java</h1><pre class="source lang-java linenums">package com.staticdata.platform.entity;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.Accessors;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 数据文件实体类
+ */
+@Data
+@EqualsAndHashCode(callSuper = true)
+@Accessors(chain = true)
+@Entity
+@Table(name = &quot;data_files&quot;)
+public class DataFile extends BaseEntity {
+    
+    @Column(nullable = false)
+    private String name;
+    
+    private String description;
+    
+    @Column(name = &quot;file_hash&quot;, unique = true, nullable = false, length = 32)
+    private String fileHash;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;organization_node_id&quot;, nullable = false)
+    private OrganizationNode organizationNode;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;owner_id&quot;, nullable = false)
+    private User owner;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AccessLevel accessLevel = AccessLevel.PRIVATE;
+    
+    @Column(name = &quot;column_definitions&quot;, columnDefinition = &quot;jsonb&quot;)
+    @JdbcTypeCode(SqlTypes.JSON)
+    private List&lt;ColumnDefinition&gt; columnDefinitions;
+    
+    @Column(name = &quot;data_rows&quot;, columnDefinition = &quot;jsonb&quot;)
+    @JdbcTypeCode(SqlTypes.JSON)
+    private List&lt;Map&lt;String, Object&gt;&gt; dataRows;
+    
+    @Column(name = &quot;row_count&quot;)
+    private Integer rowCount = 0;
+    
+    @Column(name = &quot;column_count&quot;)
+    private Integer columnCount = 0;
+    
+    @OneToMany(mappedBy = &quot;dataFile&quot;, cascade = CascadeType.ALL)
+    private List&lt;DataFileVersion&gt; versions;
+    
+<span class="fc" id="L60">    public enum AccessLevel {</span>
+<span class="fc" id="L61">        PRIVATE, PUBLIC</span>
+    }
+    
+    @Data
+    @Accessors(chain = true)
+    public static class ColumnDefinition {
+        private String name;
+        private DataType dataType;
+        private Boolean required = false;
+        private String defaultValue;
+        private Integer maxLength;
+        
+<span class="fc" id="L73">        public enum DataType {</span>
+<span class="fc" id="L74">            STRING, INTEGER, DECIMAL, BOOLEAN, DATE, DATETIME, JSON</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

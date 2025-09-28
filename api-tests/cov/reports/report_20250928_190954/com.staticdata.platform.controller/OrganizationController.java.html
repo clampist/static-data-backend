@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrganizationController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.staticdata.platform.controller</a> &gt; <span class="el_source">OrganizationController.java</span></div><h1>OrganizationController.java</h1><pre class="source lang-java linenums">package com.staticdata.platform.controller;
+
+import com.staticdata.platform.dto.CreateOrganizationNodeRequest;
+import com.staticdata.platform.dto.OrganizationNodeDto;
+import com.staticdata.platform.dto.UpdateOrganizationNodeRequest;
+import com.staticdata.platform.entity.OrganizationNode;
+import com.staticdata.platform.service.OrganizationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 组织管理控制器
+ * 处理组织架构相关的HTTP请求
+ */
+@RestController
+@RequestMapping(&quot;/organization&quot;)
+@RequiredArgsConstructor
+<span class="fc" id="L33">@Slf4j</span>
+@Tag(name = &quot;组织管理&quot;, description = &quot;组织架构管理相关API&quot;)
+public class OrganizationController {
+
+    private final OrganizationService organizationService;
+
+    /**
+     * 获取完整的组织树
+     */
+    @GetMapping(&quot;/tree&quot;)
+    @Operation(summary = &quot;获取组织树&quot;, description = &quot;获取完整的组织架构树状结构&quot;)
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;获取成功&quot;, 
+                    content = @Content(schema = @Schema(implementation = OrganizationNodeDto.class))),
+        @ApiResponse(responseCode = &quot;401&quot;, description = &quot;未认证&quot;),
+        @ApiResponse(responseCode = &quot;403&quot;, description = &quot;权限不足&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;List&lt;OrganizationNodeDto&gt;&gt; getOrganizationTree() {
+<span class="fc" id="L52">        log.info(&quot;Getting organization tree&quot;);</span>
+        
+<span class="fc" id="L54">        List&lt;OrganizationNodeDto&gt; tree = organizationService.getOrganizationTree();</span>
+<span class="fc" id="L55">        return ResponseEntity.ok(tree);</span>
+    }
+
+    /**
+     * 根据父节点ID获取子节点
+     */
+    @GetMapping(&quot;/nodes&quot;)
+    @Operation(summary = &quot;获取子节点&quot;, description = &quot;根据父节点ID获取直接子节点列表&quot;)
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;获取成功&quot;),
+        @ApiResponse(responseCode = &quot;401&quot;, description = &quot;未认证&quot;),
+        @ApiResponse(responseCode = &quot;403&quot;, description = &quot;权限不足&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;List&lt;OrganizationNodeDto&gt;&gt; getChildrenByParentId(
+            @Parameter(description = &quot;父节点ID，为空时获取根节点&quot;)
+            @RequestParam(required = false) Long parentId) {
+        
+<span class="fc" id="L73">        log.info(&quot;Getting children for parent node: {}&quot;, parentId);</span>
+        
+<span class="fc" id="L75">        List&lt;OrganizationNodeDto&gt; children = organizationService.getChildrenByParentId(parentId);</span>
+<span class="fc" id="L76">        return ResponseEntity.ok(children);</span>
+    }
+
+    /**
+     * 根据ID获取节点详情
+     */
+    @GetMapping(&quot;/nodes/{id}&quot;)
+    @Operation(summary = &quot;获取节点详情&quot;, description = &quot;根据节点ID获取详细信息&quot;)
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;获取成功&quot;, 
+                    content = @Content(schema = @Schema(implementation = OrganizationNodeDto.class))),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;节点不存在&quot;),
+        @ApiResponse(responseCode = &quot;401&quot;, description = &quot;未认证&quot;),
+        @ApiResponse(responseCode = &quot;403&quot;, description = &quot;权限不足&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;OrganizationNodeDto&gt; getNodeById(
+            @Parameter(description = &quot;节点ID&quot;, required = true)
+            @PathVariable Long id) {
+        
+<span class="fc" id="L96">        log.info(&quot;Getting organization node by id: {}&quot;, id);</span>
+        
+<span class="fc" id="L98">        OrganizationNodeDto node = organizationService.getNodeById(id);</span>
+<span class="fc" id="L99">        return ResponseEntity.ok(node);</span>
+    }
+
+    /**
+     * 创建组织节点
+     */
+    @PostMapping(&quot;/nodes&quot;)
+    @Operation(summary = &quot;创建组织节点&quot;, description = &quot;创建新的组织节点&quot;)
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = &quot;201&quot;, description = &quot;创建成功&quot;, 
+                    content = @Content(schema = @Schema(implementation = OrganizationNodeDto.class))),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;请求参数错误&quot;),
+        @ApiResponse(responseCode = &quot;409&quot;, description = &quot;节点名称冲突&quot;),
+        @ApiResponse(responseCode = &quot;401&quot;, description = &quot;未认证&quot;),
+        @ApiResponse(responseCode = &quot;403&quot;, description = &quot;权限不足&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;OrganizationNodeDto&gt; createNode(
+            @Parameter(description = &quot;创建节点请求信息&quot;, required = true)
+            @Valid @RequestBody CreateOrganizationNodeRequest request) {
+        
+<span class="fc" id="L120">        log.info(&quot;Creating organization node: {}&quot;, request.getName());</span>
+        
+<span class="nc" id="L122">        OrganizationNodeDto createdNode = organizationService.createNode(request);</span>
+<span class="nc" id="L123">        return ResponseEntity.status(HttpStatus.CREATED).body(createdNode);</span>
+    }
+
+    /**
+     * 更新组织节点
+     */
+    @PutMapping(&quot;/nodes/{id}&quot;)
+    @Operation(summary = &quot;更新组织节点&quot;, description = &quot;更新指定节点的信息&quot;)
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;更新成功&quot;, 
+                    content = @Content(schema = @Schema(implementation = OrganizationNodeDto.class))),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;请求参数错误&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;节点不存在&quot;),
+        @ApiResponse(responseCode = &quot;409&quot;, description = &quot;节点名称冲突&quot;),
+        @ApiResponse(responseCode = &quot;401&quot;, description = &quot;未认证&quot;),
+        @ApiResponse(responseCode = &quot;403&quot;, description = &quot;权限不足&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;OrganizationNodeDto&gt; updateNode(
+            @Parameter(description = &quot;节点ID&quot;, required = true)
+            @PathVariable Long id,
+            @Parameter(description = &quot;更新节点请求信息&quot;, required = true)
+            @Valid @RequestBody UpdateOrganizationNodeRequest request) {
+        
+<span class="fc" id="L147">        log.info(&quot;Updating organization node: {}&quot;, id);</span>
+        
+<span class="fc" id="L149">        OrganizationNodeDto updatedNode = organizationService.updateNode(id, request);</span>
+<span class="fc" id="L150">        return ResponseEntity.ok(updatedNode);</span>
+    }
+
+    /**
+     * 删除组织节点
+     */
+    @DeleteMapping(&quot;/nodes/{id}&quot;)
+    @Operation(summary = &quot;删除组织节点&quot;, description = &quot;删除指定的组织节点&quot;)
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = &quot;204&quot;, description = &quot;删除成功&quot;),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;无法删除（包含子节点或关联数据）&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;节点不存在&quot;),
+        @ApiResponse(responseCode = &quot;401&quot;, description = &quot;未认证&quot;),
+        @ApiResponse(responseCode = &quot;403&quot;, description = &quot;权限不足&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;Void&gt; deleteNode(
+            @Parameter(description = &quot;节点ID&quot;, required = true)
+            @PathVariable Long id) {
+        
+<span class="nc" id="L170">        log.info(&quot;Deleting organization node: {}&quot;, id);</span>
+        
+<span class="nc" id="L172">        organizationService.deleteNode(id);</span>
+<span class="nc" id="L173">        return ResponseEntity.noContent().build();</span>
+    }
+
+    /**
+     * 搜索组织节点
+     */
+    @GetMapping(&quot;/search&quot;)
+    @Operation(summary = &quot;搜索组织节点&quot;, description = &quot;根据关键词搜索组织节点&quot;)
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;搜索成功&quot;),
+        @ApiResponse(responseCode = &quot;401&quot;, description = &quot;未认证&quot;),
+        @ApiResponse(responseCode = &quot;403&quot;, description = &quot;权限不足&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;List&lt;OrganizationNodeDto&gt;&gt; searchNodes(
+            @Parameter(description = &quot;搜索关键词&quot;)
+            @RequestParam String keyword) {
+        
+<span class="nc" id="L191">        log.info(&quot;Searching organization nodes with keyword: {}&quot;, keyword);</span>
+        
+<span class="nc" id="L193">        List&lt;OrganizationNodeDto&gt; results = organizationService.searchNodes(keyword);</span>
+<span class="nc" id="L194">        return ResponseEntity.ok(results);</span>
+    }
+
+    /**
+     * 移动节点
+     */
+    @PutMapping(&quot;/nodes/{id}/move&quot;)
+    @Operation(summary = &quot;移动节点&quot;, description = &quot;将节点移动到新的父节点下&quot;)
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;移动成功&quot;, 
+                    content = @Content(schema = @Schema(implementation = OrganizationNodeDto.class))),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;移动失败（循环引用或名称冲突）&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;节点不存在&quot;),
+        @ApiResponse(responseCode = &quot;401&quot;, description = &quot;未认证&quot;),
+        @ApiResponse(responseCode = &quot;403&quot;, description = &quot;权限不足&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;OrganizationNodeDto&gt; moveNode(
+            @Parameter(description = &quot;节点ID&quot;, required = true)
+            @PathVariable Long id,
+            @Parameter(description = &quot;新的父节点ID，null表示移动到根节点&quot;)
+            @RequestBody Map&lt;String, Long&gt; request) {
+        
+<span class="fc" id="L217">        Long newParentId = request.get(&quot;parentId&quot;);</span>
+<span class="fc" id="L218">        log.info(&quot;Moving node {} to parent {}&quot;, id, newParentId);</span>
+        
+<span class="fc" id="L220">        OrganizationNodeDto movedNode = organizationService.moveNode(id, newParentId);</span>
+<span class="fc" id="L221">        return ResponseEntity.ok(movedNode);</span>
+    }
+
+    /**
+     * 获取节点类型列表
+     */
+    @GetMapping(&quot;/node-types&quot;)
+    @Operation(summary = &quot;获取节点类型&quot;, description = &quot;获取所有可用的节点类型&quot;)
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;获取成功&quot;),
+        @ApiResponse(responseCode = &quot;401&quot;, description = &quot;未认证&quot;),
+        @ApiResponse(responseCode = &quot;403&quot;, description = &quot;权限不足&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;OrganizationNode.NodeType[]&gt; getNodeTypes() {
+<span class="fc" id="L236">        log.info(&quot;Getting node types&quot;);</span>
+        
+<span class="fc" id="L238">        OrganizationNode.NodeType[] types = OrganizationNode.NodeType.values();</span>
+<span class="fc" id="L239">        return ResponseEntity.ok(types);</span>
+    }
+
+    /**
+     * 获取节点的统计信息
+     */
+    @GetMapping(&quot;/nodes/{id}/stats&quot;)
+    @Operation(summary = &quot;获取节点统计&quot;, description = &quot;获取指定节点的统计信息&quot;)
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;获取成功&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;节点不存在&quot;),
+        @ApiResponse(responseCode = &quot;401&quot;, description = &quot;未认证&quot;),
+        @ApiResponse(responseCode = &quot;403&quot;, description = &quot;权限不足&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; getNodeStats(
+            @Parameter(description = &quot;节点ID&quot;, required = true)
+            @PathVariable Long id) {
+        
+<span class="fc" id="L258">        log.info(&quot;Getting stats for node: {}&quot;, id);</span>
+        
+<span class="fc" id="L260">        OrganizationNodeDto node = organizationService.getNodeById(id);</span>
+        
+<span class="fc" id="L262">        Map&lt;String, Object&gt; stats = Map.of(</span>
+<span class="fc" id="L263">                &quot;id&quot;, node.getId(),</span>
+<span class="fc" id="L264">                &quot;name&quot;, node.getName(),</span>
+<span class="fc" id="L265">                &quot;childrenCount&quot;, node.getChildrenCount(),</span>
+<span class="fc" id="L266">                &quot;dataFilesCount&quot;, node.getDataFilesCount(),</span>
+<span class="fc" id="L267">                &quot;type&quot;, node.getType(),</span>
+<span class="fc" id="L268">                &quot;createdAt&quot;, node.getCreatedAt(),</span>
+<span class="fc" id="L269">                &quot;updatedAt&quot;, node.getUpdatedAt()</span>
+        );
+        
+<span class="fc" id="L272">        return ResponseEntity.ok(stats);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

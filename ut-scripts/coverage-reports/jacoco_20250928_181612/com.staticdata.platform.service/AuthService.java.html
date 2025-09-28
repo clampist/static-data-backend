@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">static-data-platform</a> &gt; <a href="index.source.html" class="el_package">com.staticdata.platform.service</a> &gt; <span class="el_source">AuthService.java</span></div><h1>AuthService.java</h1><pre class="source lang-java linenums">package com.staticdata.platform.service;
+
+import com.staticdata.platform.dto.LoginRequest;
+import com.staticdata.platform.dto.LoginResponse;
+import com.staticdata.platform.dto.RegisterRequest;
+import com.staticdata.platform.dto.UserDto;
+import com.staticdata.platform.entity.User;
+import com.staticdata.platform.enums.UserRole;
+import com.staticdata.platform.repository.UserRepository;
+import com.staticdata.platform.security.UserPrincipal;
+import com.staticdata.platform.util.JwtUtils;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+
+/**
+ * 认证服务类 处理用户登录、注册、token管理等认证相关业务逻辑
+ */
+@Service
+@RequiredArgsConstructor
+<span class="fc" id="L29">@Slf4j</span>
+public class AuthService {
+
+    private final AuthenticationManager authenticationManager;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtils jwtUtils;
+
+    /**
+     * 用户登录
+     * 
+     * @param loginRequest 登录请求
+     * @return 登录响应包含token和用户信息
+     */
+    @Transactional
+    public LoginResponse login(LoginRequest loginRequest) {
+<span class="fc" id="L45">        log.info(&quot;User login attempt: {}&quot;, loginRequest.getUsername());</span>
+
+        try {
+            // 验证用户凭据
+<span class="fc" id="L49">            Authentication authentication =</span>
+<span class="fc" id="L50">                    authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(</span>
+<span class="fc" id="L51">                            loginRequest.getUsername(), loginRequest.getPassword()));</span>
+
+            // 设置安全上下文
+<span class="fc" id="L54">            SecurityContextHolder.getContext().setAuthentication(authentication);</span>
+
+            // 获取用户主体
+<span class="fc" id="L57">            UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();</span>
+
+            // 生成JWT token
+<span class="fc" id="L60">            String jwt = jwtUtils.generateJwtToken(userPrincipal.getUsername());</span>
+
+            // 更新用户最后登录时间
+<span class="fc" id="L63">            updateLastLoginTime(userPrincipal.getId());</span>
+
+            // 构建用户DTO
+<span class="fc" id="L66">            UserDto userDto = UserDto.builder().id(userPrincipal.getId())</span>
+<span class="fc" id="L67">                    .username(userPrincipal.getUsername()).email(userPrincipal.getEmail())</span>
+<span class="fc" id="L68">                    .fullName(userPrincipal.getFullName()).role(userPrincipal.getRole())</span>
+<span class="fc" id="L69">                    .enabled(userPrincipal.isEnabled()).build();</span>
+
+<span class="fc" id="L71">            log.info(&quot;User login successful: {}&quot;, userPrincipal.getUsername());</span>
+
+<span class="fc" id="L73">            return new LoginResponse(jwt, jwtUtils.getJwtExpirationMs(), userDto);</span>
+<span class="fc" id="L74">        } catch (Exception e) {</span>
+<span class="fc" id="L75">            log.error(&quot;Login failed for user {}: {}&quot;, loginRequest.getUsername(), e.getMessage());</span>
+<span class="fc" id="L76">            throw new RuntimeException(&quot;Invalid credentials&quot;);</span>
+        }
+    }
+
+    /**
+     * 用户注册
+     * 
+     * @param registerRequest 注册请求
+     * @return 用户DTO
+     */
+    @Transactional
+    public UserDto register(RegisterRequest registerRequest) {
+<span class="fc" id="L88">        log.info(&quot;User registration attempt: {}&quot;, registerRequest.getUsername());</span>
+
+        // 验证密码和确认密码是否匹配
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        if (!registerRequest.getPassword().equals(registerRequest.getConfirmPassword())) {</span>
+<span class="fc" id="L92">            throw new IllegalArgumentException(&quot;密码和确认密码不匹配&quot;);</span>
+        }
+
+        // 检查用户名是否已存在
+<span class="fc bfc" id="L96" title="All 2 branches covered.">        if (userRepository.existsByUsername(registerRequest.getUsername())) {</span>
+<span class="fc" id="L97">            throw new IllegalArgumentException(&quot;用户名已存在: &quot; + registerRequest.getUsername());</span>
+        }
+
+        // 检查邮箱是否已存在
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        if (userRepository.existsByEmail(registerRequest.getEmail())) {</span>
+<span class="fc" id="L102">            throw new IllegalArgumentException(&quot;邮箱已存在: &quot; + registerRequest.getEmail());</span>
+        }
+
+        // 创建新用户
+<span class="fc" id="L106">        User user = new User();</span>
+<span class="fc" id="L107">        user.setUsername(registerRequest.getUsername());</span>
+<span class="fc" id="L108">        user.setEmail(registerRequest.getEmail());</span>
+<span class="fc" id="L109">        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));</span>
+<span class="fc" id="L110">        user.setFullName(registerRequest.getFullName());</span>
+<span class="fc" id="L111">        user.setRole(UserRole.USER); // 默认角色为USER</span>
+<span class="fc" id="L112">        user.setEnabled(true);</span>
+<span class="fc" id="L113">        user.setCreatedBy(&quot;SYSTEM&quot;);</span>
+<span class="fc" id="L114">        user.setUpdatedBy(&quot;SYSTEM&quot;);</span>
+
+        // 保存用户
+<span class="fc" id="L117">        User savedUser = userRepository.save(user);</span>
+
+<span class="fc" id="L119">        log.info(&quot;User registration successful: {}&quot;, savedUser.getUsername());</span>
+
+        // 转换为DTO并返回
+<span class="fc" id="L122">        return UserDto.builder().id(savedUser.getId()).username(savedUser.getUsername())</span>
+<span class="fc" id="L123">                .email(savedUser.getEmail()).fullName(savedUser.getFullName())</span>
+<span class="fc" id="L124">                .role(savedUser.getRole()).enabled(savedUser.getEnabled())</span>
+<span class="fc" id="L125">                .createdAt(savedUser.getCreatedAt()).updatedAt(savedUser.getUpdatedAt()).build();</span>
+    }
+
+    /**
+     * 刷新JWT token
+     * 
+     * @param token 当前token
+     * @return 新的LoginResponse
+     */
+    public LoginResponse refreshToken(String token) {
+<span class="fc" id="L135">        log.info(&quot;Token refresh attempt&quot;);</span>
+
+        // 验证当前token
+<span class="fc bfc" id="L138" title="All 2 branches covered.">        if (!jwtUtils.validateJwtToken(token)) {</span>
+<span class="fc" id="L139">            throw new IllegalArgumentException(&quot;无效的token&quot;);</span>
+        }
+
+        // 从token获取用户名
+<span class="fc" id="L143">        String username = jwtUtils.getUsernameFromJwtToken(token);</span>
+
+        // 查找用户
+<span class="fc" id="L146">        User user = userRepository.findByUsername(username)</span>
+<span class="pc" id="L147">                .orElseThrow(() -&gt; new IllegalArgumentException(&quot;用户不存在: &quot; + username));</span>
+
+        // 生成新token
+<span class="fc" id="L150">        String newJwt = jwtUtils.generateJwtToken(username);</span>
+
+        // 构建用户DTO
+<span class="fc" id="L153">        UserDto userDto = UserDto.builder().id(user.getId()).username(user.getUsername())</span>
+<span class="fc" id="L154">                .email(user.getEmail()).fullName(user.getFullName()).role(user.getRole())</span>
+<span class="fc" id="L155">                .enabled(user.getEnabled()).build();</span>
+
+<span class="fc" id="L157">        log.info(&quot;Token refresh successful for user: {}&quot;, username);</span>
+
+<span class="fc" id="L159">        return new LoginResponse(newJwt, jwtUtils.getJwtExpirationMs(), userDto);</span>
+    }
+
+    /**
+     * 验证token有效性
+     * 
+     * @param token JWT token
+     * @return 是否有效
+     */
+    public boolean validateToken(String token) {
+<span class="fc" id="L169">        return jwtUtils.validateJwtToken(token);</span>
+    }
+
+    /**
+     * 从token获取用户信息
+     * 
+     * @param token JWT token
+     * @return 用户DTO
+     */
+    public UserDto getUserFromToken(String token) {
+<span class="fc bfc" id="L179" title="All 2 branches covered.">        if (!jwtUtils.validateJwtToken(token)) {</span>
+<span class="fc" id="L180">            throw new IllegalArgumentException(&quot;无效的token&quot;);</span>
+        }
+
+<span class="fc" id="L183">        String username = jwtUtils.getUsernameFromJwtToken(token);</span>
+<span class="fc" id="L184">        User user = userRepository.findByUsername(username)</span>
+<span class="pc" id="L185">                .orElseThrow(() -&gt; new IllegalArgumentException(&quot;用户不存在: &quot; + username));</span>
+
+<span class="fc" id="L187">        return UserDto.builder().id(user.getId()).username(user.getUsername())</span>
+<span class="fc" id="L188">                .email(user.getEmail()).fullName(user.getFullName()).role(user.getRole())</span>
+<span class="fc" id="L189">                .enabled(user.getEnabled()).createdAt(user.getCreatedAt())</span>
+<span class="fc" id="L190">                .updatedAt(user.getUpdatedAt()).build();</span>
+    }
+
+    /**
+     * 更新用户最后登录时间
+     * 
+     * @param userId 用户ID
+     */
+    private void updateLastLoginTime(Long userId) {
+        try {
+<span class="fc" id="L200">            userRepository.findById(userId).ifPresent(user -&gt; {</span>
+<span class="nc" id="L201">                user.setLastLoginAt(LocalDateTime.now());</span>
+<span class="nc" id="L202">                user.setUpdatedBy(user.getUsername());</span>
+<span class="nc" id="L203">                userRepository.save(user);</span>
+<span class="nc" id="L204">            });</span>
+<span class="nc" id="L205">        } catch (Exception e) {</span>
+<span class="nc" id="L206">            log.warn(&quot;Failed to update last login time for user {}: {}&quot;, userId, e.getMessage());</span>
+<span class="fc" id="L207">        }</span>
+<span class="fc" id="L208">    }</span>
+
+    /**
+     * 检查用户名是否可用
+     * 
+     * @param username 用户名
+     * @return 是否可用
+     */
+    public boolean isUsernameAvailable(String username) {
+<span class="fc bfc" id="L217" title="All 2 branches covered.">        return !userRepository.existsByUsername(username);</span>
+    }
+
+    /**
+     * 检查邮箱是否可用
+     * 
+     * @param email 邮箱
+     * @return 是否可用
+     */
+    public boolean isEmailAvailable(String email) {
+<span class="fc bfc" id="L227" title="All 2 branches covered.">        return !userRepository.existsByEmail(email);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
