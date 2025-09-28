@@ -17,10 +17,6 @@ NC='\033[0m' # No Color
 # 记录开始时间
 START_TIME=$(date +%s)
 
-# 清理之前的测试结果
-echo -e "${BLUE}📁 清理之前的测试结果...${NC}"
-mvn clean -q
-
 # 编译项目
 echo -e "${BLUE}🔨 编译项目...${NC}"
 if ! mvn compile -q; then
@@ -37,12 +33,12 @@ fi
 
 echo -e "${GREEN}✅ 编译成功${NC}"
 
-# 运行所有测试
-echo -e "${BLUE}🏃 运行所有测试...${NC}"
+# 运行所有测试（包含代码覆盖率）
+echo -e "${BLUE}🏃 运行所有测试（包含代码覆盖率）...${NC}"
 echo ""
 
 # 运行测试并捕获输出
-TEST_OUTPUT=$(mvn test 2>&1)
+TEST_OUTPUT=$(mvn clean test jacoco:report 2>&1)
 TEST_EXIT_CODE=$?
 
 # 记录结束时间
@@ -106,14 +102,32 @@ if [ -d "$REPORT_DIR" ]; then
     done
 fi
 
-# 检查测试覆盖率（如果有的话）
+# 检查测试覆盖率
 echo ""
 echo -e "${BLUE}📊 检查测试覆盖率...${NC}"
 if [ -d "target/site/jacoco" ]; then
     echo -e "${GREEN}✅ 找到测试覆盖率报告${NC}"
     echo "  覆盖率报告: target/site/jacoco/index.html"
+    
+    # 尝试解析覆盖率数据
+    if [ -f "target/site/jacoco/jacoco.csv" ]; then
+        echo -e "${BLUE}📈 覆盖率统计:${NC}"
+        # 读取CSV文件并显示总体覆盖率
+        if command -v awk >/dev/null 2>&1; then
+            TOTAL_LINES=$(awk -F',' 'NR>1 {sum+=$4+$5} END {print sum}' target/site/jacoco/jacoco.csv 2>/dev/null)
+            COVERED_LINES=$(awk -F',' 'NR>1 {sum+=$4} END {print sum}' target/site/jacoco/jacoco.csv 2>/dev/null)
+            if [ ! -z "$TOTAL_LINES" ] && [ ! -z "$COVERED_LINES" ] && [ "$TOTAL_LINES" -gt 0 ]; then
+                COVERAGE_PERCENT=$(echo "scale=1; $COVERED_LINES * 100 / $TOTAL_LINES" | bc 2>/dev/null || echo "N/A")
+                echo "  指令覆盖率: ${COVERAGE_PERCENT}%"
+            fi
+        fi
+    fi
+    
+    # 提供打开报告的提示
+    echo -e "${YELLOW}💡 提示: 在浏览器中打开 target/site/jacoco/index.html 查看详细覆盖率报告${NC}"
 else
     echo -e "${YELLOW}⚠️  未找到测试覆盖率报告${NC}"
+    echo -e "${YELLOW}💡 提示: 运行 'mvn clean test jacoco:report' 生成覆盖率报告${NC}"
 fi
 
 # 最终结果
