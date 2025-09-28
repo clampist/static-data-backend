@@ -32,3 +32,9 @@ build/
 ### VS Code ###
 .vscode/
 .DS_Store
+
+### Coverage and Test Reports ###
+api-tests/cov/
+api-tests/coverage-reports/
+ut-scripts/coverage-reports/
+ut-scripts/packages/
