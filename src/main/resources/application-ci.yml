@@ -42,7 +42,7 @@ logging:
 # Security CI Settings
 app:
   jwt:
-    secret: ${APP_JWT_SECRET:testSecretKey1234567890123456789012345678901234567890123456789012345678901234567890}
+    secret: ${APP_JWT_SECRET:F9uIqqdZ9Hxt9zNKPBrcidenuEFKdQs8CKgjkBHuN/SLIEE38w3jfO45I8wF+zfwVnRiRuFQQorvxcGLg/r5RA==}
     expiration: ${APP_JWT_EXPIRATION:86400000}
   
   # CI Features
