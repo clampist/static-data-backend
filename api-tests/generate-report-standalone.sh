@@ -81,16 +81,23 @@ check_prerequisites() {
 find_latest_packages() {
     print_info "查找最新的预编译包..."
     
-    # 查找编译产物包
-    local compiled_artifacts=$(find "$PACKAGES_DIR" -name "compiled-artifacts_*.tar.gz" | sort -r | head -1)
-    # 查找源码包
-    local source_code=$(find "$PACKAGES_DIR" -name "source-code_*.tar.gz" | sort -r | head -1)
+    # 查找编译产物包 (优先从COV_DIR查找，然后从PACKAGES_DIR查找)
+    local compiled_artifacts=$(find "$COV_DIR" -name "compiled-artifacts_*.tar.gz" | sort -r | head -1)
+    if [ -z "$compiled_artifacts" ]; then
+        compiled_artifacts=$(find "$PACKAGES_DIR" -name "compiled-artifacts_*.tar.gz" | sort -r | head -1)
+    fi
+    
+    # 查找源码包 (优先从COV_DIR查找，然后从PACKAGES_DIR查找)
+    local source_code=$(find "$COV_DIR" -name "source-code_*.tar.gz" | sort -r | head -1)
+    if [ -z "$source_code" ]; then
+        source_code=$(find "$PACKAGES_DIR" -name "source-code_*.tar.gz" | sort -r | head -1)
+    fi
     
     if [ -z "$compiled_artifacts" ] || [ -z "$source_code" ]; then
         print_error "未找到预编译包文件"
         echo "请确保以下文件存在:"
-        echo "  - $PACKAGES_DIR/compiled-artifacts_*.tar.gz"
-        echo "  - $PACKAGES_DIR/source-code_*.tar.gz"
+        echo "  - $COV_DIR/compiled-artifacts_*.tar.gz 或 $PACKAGES_DIR/compiled-artifacts_*.tar.gz"
+        echo "  - $COV_DIR/source-code_*.tar.gz 或 $PACKAGES_DIR/source-code_*.tar.gz"
         exit 1
     fi
     

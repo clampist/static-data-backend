@@ -28,10 +28,95 @@ env:
   CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: static_data_platform_test
+          POSTGRES_USER: sdp_user
+          POSTGRES_PASSWORD: aP5WeC8GNHzQXfvNyEIrDnCkkmi4Jc8g
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Initialize test database
+      run: |
+        # Wait for PostgreSQL to be ready
+        until pg_isready -h localhost -p 5432 -U sdp_user; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+        
+        # Create extensions and test database
+        PGPASSWORD=aP5WeC8GNHzQXfvNyEIrDnCkkmi4Jc8g psql -h localhost -p 5432 -U sdp_user -d static_data_platform_test -c "
+        CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
+        CREATE EXTENSION IF NOT EXISTS \"pg_trgm\";
+        "
+
+    - name: Run tests using ut-scripts
+      run: bash -x ./ut-scripts/run-all-tests.sh
+      env:
+        # 测试环境特定配置
+        SPRING_PROFILES_ACTIVE: test
+        # 覆盖默认的数据库URL为测试容器
+        SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/static_data_platform_test
+        SPRING_DATASOURCE_USERNAME: sdp_user
+        SPRING_DATASOURCE_PASSWORD: aP5WeC8GNHzQXfvNyEIrDnCkkmi4Jc8g
+        SPRING_DATA_REDIS_HOST: localhost
+        SPRING_DATA_REDIS_PORT: 6379
+        APP_JWT_SECRET: F9uIqqdZ9Hxt9zNKPBrcidenuEFKdQs8CKgjkBHuN/SLIEE38w3jfO45I8wF+zfwVnRiRuFQQorvxcGLg/r5RA==
+        APP_JWT_EXPIRATION: 86400000
+        CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173
+
+    - name: Package JaCoCo dependencies
+      run: ./ut-scripts/package-jacococli-dependencies.sh
+
+    - name: Upload JaCoCo packages
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: jacoco-packages
+        path: ./ut-scripts/packages/
+        retention-days: 30
+
   api-test:
     name: API Coverage Tests
     runs-on: ubuntu-latest
-    # needs: test
+    needs: test
     
     services:
       postgres:
@@ -211,8 +296,31 @@ jobs:
         APP_JWT_EXPIRATION: 86400000
         CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173
 
-    - name: Generate API coverage report
-      run: bash -x ./api-tests/generate-report-standalone.sh
+      - name: Download JaCoCo packages from test job
+        uses: actions/download-artifact@v4
+        with:
+          name: jacoco-packages
+          path: ./ut-scripts/packages/
+
+      - name: Copy JaCoCo packages to api-tests/cov
+        run: |
+          # Create cov directory
+          mkdir -p ./api-tests/cov
+          
+          # Copy compiled artifacts tar.gz file
+          echo "Copying compiled artifacts..."
+          find ./ut-scripts/packages/ -name "compiled-artifacts_*.tar.gz" -exec cp {} ./api-tests/cov/ \;
+          
+          # Copy source code tar.gz file
+          echo "Copying source code..."
+          find ./ut-scripts/packages/ -name "source-code_*.tar.gz" -exec cp {} ./api-tests/cov/ \;
+          
+          # List copied files
+          echo "Copied files:"
+          ls -la ./api-tests/cov/
+
+      - name: Generate API coverage report
+        run: bash -x ./api-tests/generate-report-standalone.sh
 
     - name: Upload API test artifacts
       uses: actions/upload-artifact@v4
@@ -223,92 +331,6 @@ jobs:
           api-tests/jacoco.exec
           api-tests/coverage-reports/
           api-tests/test-results/
-        retention-days: 30
-
-  test:
-    runs-on: ubuntu-latest
-    needs: api-test
-    
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_DB: static_data_platform_test
-          POSTGRES_USER: sdp_user
-          POSTGRES_PASSWORD: aP5WeC8GNHzQXfvNyEIrDnCkkmi4Jc8g
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-
-    - name: Cache Maven dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
-
-    - name: Initialize test database
-      run: |
-        # Wait for PostgreSQL to be ready
-        until pg_isready -h localhost -p 5432 -U sdp_user; do
-          echo "Waiting for PostgreSQL..."
-          sleep 2
-        done
-        
-        # Create extensions and test database
-        PGPASSWORD=aP5WeC8GNHzQXfvNyEIrDnCkkmi4Jc8g psql -h localhost -p 5432 -U sdp_user -d static_data_platform_test -c "
-        CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
-        CREATE EXTENSION IF NOT EXISTS \"pg_trgm\";
-        "
-
-    - name: Run tests using ut-scripts
-      run: bash -x ./ut-scripts/run-all-tests.sh
-      env:
-        # 测试环境特定配置
-        SPRING_PROFILES_ACTIVE: test
-        # 覆盖默认的数据库URL为测试容器
-        SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/static_data_platform_test
-        SPRING_DATASOURCE_USERNAME: sdp_user
-        SPRING_DATASOURCE_PASSWORD: aP5WeC8GNHzQXfvNyEIrDnCkkmi4Jc8g
-        SPRING_DATA_REDIS_HOST: localhost
-        SPRING_DATA_REDIS_PORT: 6379
-        APP_JWT_SECRET: F9uIqqdZ9Hxt9zNKPBrcidenuEFKdQs8CKgjkBHuN/SLIEE38w3jfO45I8wF+zfwVnRiRuFQQorvxcGLg/r5RA==
-        APP_JWT_EXPIRATION: 86400000
-        CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173
-
-    - name: Package JaCoCo dependencies
-      run: ./ut-scripts/package-jacococli-dependencies.sh
-
-    - name: Upload JaCoCo packages
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: jacoco-packages
-        path: ./ut-scripts/packages/
         retention-days: 30
 
   build:
