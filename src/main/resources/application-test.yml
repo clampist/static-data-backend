@@ -8,7 +8,7 @@ spring:
   # JPA Test Settings
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: create
     show-sql: false
   
   # Test Features
