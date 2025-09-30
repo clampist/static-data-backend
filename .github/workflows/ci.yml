@@ -340,7 +340,7 @@ jobs:
           api-tests/cov/reports/latest/
         retention-days: 30
 
-  build:
+  package:
     needs: [test, api-test]
     runs-on: ubuntu-latest
     
@@ -387,10 +387,20 @@ jobs:
         echo "Extracting source code to src/main/java..."
         find ./temp-packages/ -name "source-code_*.tar.gz" -exec tar -xzf {} -C ./src \;
         
-        # List extracted files
-        echo "Extracted files:"
-        find ./src -type f | head -5
-        find ./target -type f | head -5
+        # List extracted files (avoid broken pipe)
+        echo "Extracted source files:"
+        find ./src -type f | head -5 || true
+        echo "Extracted target files:"
+        find ./target -type f | head -5 || true
+        
+        # Show directory structure
+        echo "Directory structure:"
+        ls -la ./src/ || true
+        ls -la ./target/ || true
+        
+        # Show complete directory tree
+        echo "Complete directory tree:"
+        tree -a -L 3 || find . -type d | head -20
 
     - name: Download API test artifacts from api-test job
       uses: actions/download-artifact@v4
@@ -398,14 +408,29 @@ jobs:
         name: api-test-artifacts
         path: ./at/latest/
 
-    - name: Build with Maven
-      run: ./mvnw clean package -DskipTests
-      env:
-        SPRING_PROFILES_ACTIVE: ci
+    - name: Show final directory structure
+      run: |
+        echo "=== Final Directory Structure ==="
+        echo ""
+        echo "📁 Root directory contents:"
+        ls -la
+        echo ""
+        echo "📁 src/ directory structure:"
+        find ./src -type d | sort
+        echo ""
+        echo "📁 target/ directory structure:"
+        find ./target -type d | sort
+        echo ""
+        echo "📁 ut/latest/ directory contents:"
+        ls -la ./ut/latest/ || echo "ut/latest/ not found"
+        echo ""
+        echo "📁 at/latest/ directory contents:"
+        ls -la ./at/latest/ || echo "at/latest/ not found"
+        echo ""
+        echo "📊 File counts:"
+        echo "  - Source files: $(find ./src -type f | wc -l)"
+        echo "  - Target files: $(find ./target -type f | wc -l)"
+        echo "  - UT report files: $(find ./ut -type f 2>/dev/null | wc -l || echo 0)"
+        echo "  - AT report files: $(find ./at -type f 2>/dev/null | wc -l || echo 0)"
 
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: jar-artifact
-        path: target/*.jar
 
