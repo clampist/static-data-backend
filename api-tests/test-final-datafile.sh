@@ -30,6 +30,18 @@ LOGIN_RESPONSE=$(curl -s -X POST "http://localhost:8080/api/auth/login" \
 TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.accessToken')
 print_status "Successfully logged in"
 
+# Get available organization nodes
+echo -e "\n--- Step 1.5: Get Organization Nodes ---"
+ORG_RESPONSE=$(curl -s -X GET "http://localhost:8080/api/organization/nodes" \
+  -H "Authorization: Bearer $TOKEN")
+
+echo "$ORG_RESPONSE" | jq .
+
+# Extract the first available organization node ID
+ORG_NODE_ID=$(echo "$ORG_RESPONSE" | jq -r '.[0].id')
+echo "Using organization node ID: $ORG_NODE_ID"
+print_status "Retrieved organization nodes"
+
 # Test 1: Get supported data types
 echo -e "\n--- Step 2: Get Supported Data Types ---"
 TYPES_RESPONSE=$(curl -s -X GET "http://localhost:8080/api/data-files/data-types" \
@@ -45,7 +57,7 @@ CREATE_RESPONSE=$(curl -s -X POST "http://localhost:8080/api/data-files" \
   -d '{
     "name": "综合测试数据表",
     "description": "包含多种数据类型的测试表",
-    "organizationNodeId": 7,
+    "organizationNodeId": '$ORG_NODE_ID',
     "accessLevel": "PRIVATE",
     "columnDefinitions": [
       {
@@ -155,7 +167,7 @@ if echo "$CREATE_RESPONSE" | jq -e '.id' > /dev/null; then
       -H "Authorization: Bearer $TOKEN" \
       -d '{
         "name": "综合",
-        "organizationNodeId": 7,
+        "organizationNodeId": '$ORG_NODE_ID',
         "accessLevel": "PUBLIC",
         "page": 1,
         "size": 10,

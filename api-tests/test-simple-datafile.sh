@@ -13,6 +13,17 @@ echo "$LOGIN_RESPONSE" | jq .
 TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.accessToken')
 echo "Token: ${TOKEN:0:20}..."
 
+# Get available organization nodes
+echo -e "\n--- Get Organization Nodes ---"
+ORG_RESPONSE=$(curl -s -X GET "http://localhost:8080/api/organization/nodes" \
+  -H "Authorization: Bearer $TOKEN")
+
+echo "$ORG_RESPONSE" | jq .
+
+# Extract the first available organization node ID
+ORG_NODE_ID=$(echo "$ORG_RESPONSE" | jq -r '.[0].id')
+echo "Using organization node ID: $ORG_NODE_ID"
+
 # Create a simple data file
 echo -e "\n--- Create Simple Data File ---"
 CREATE_RESPONSE=$(curl -s -X POST "http://localhost:8080/api/data-files" \
@@ -21,7 +32,7 @@ CREATE_RESPONSE=$(curl -s -X POST "http://localhost:8080/api/data-files" \
   -d '{
     "name": "简单测试数据表",
     "description": "测试用数据表",
-    "organizationNodeId": 7,
+    "organizationNodeId": '$ORG_NODE_ID',
     "accessLevel": "PRIVATE",
     "columnDefinitions": [
       {
