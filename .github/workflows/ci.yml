@@ -88,7 +88,7 @@ jobs:
         "
 
     - name: Run tests using ut-scripts
-      run: ./ut-scripts/run-all-tests.sh
+      run: bash -x ./ut-scripts/run-all-tests.sh
       env:
         # 测试环境特定配置
         SPRING_PROFILES_ACTIVE: test
@@ -102,20 +102,16 @@ jobs:
         APP_JWT_EXPIRATION: 86400000
         CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173
 
-    - name: Generate test report
-      uses: dorny/test-reporter@v1
-      if: success() || failure()
-      with:
-        name: Maven Tests
-        path: target/surefire-reports/*.xml
-        reporter: java-junit
+    - name: Package JaCoCo dependencies
+      run: ./ut-scripts/package-jacococli-dependencies.sh
 
-    - name: Upload coverage reports
-      uses: codecov/codecov-action@v3
+    - name: Upload JaCoCo packages
+      uses: actions/upload-artifact@v3
+      if: always()
       with:
-        file: ./target/site/jacoco/jacoco.xml
-        flags: unittests
-        name: codecov-umbrella
+        name: jacoco-packages
+        path: ./ut-scripts/packages/
+        retention-days: 30
 
   build:
     needs: test
