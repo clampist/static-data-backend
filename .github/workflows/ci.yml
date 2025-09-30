@@ -31,7 +31,7 @@ jobs:
   api-test:
     name: API Coverage Tests
     runs-on: ubuntu-latest
-    needs: test
+    # needs: test
     
     services:
       postgres:
@@ -88,6 +88,34 @@ jobs:
         PGPASSWORD=aP5WeC8GNHzQXfvNyEIrDnCkkmi4Jc8g psql -h localhost -p 5432 -U sdp_user -d static_data_platform_test -c "
         CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
         CREATE EXTENSION IF NOT EXISTS \"pg_trgm\";
+        "
+        
+        # Initialize organization structure for API tests
+        PGPASSWORD=aP5WeC8GNHzQXfvNyEIrDnCkkmi4Jc8g psql -h localhost -p 5432 -U sdp_user -d static_data_platform_test -c "
+        -- Insert basic organization structure for API tests
+        INSERT INTO organization_nodes (id, name, description, type, parent_id, sort_order, created_at, updated_at, created_by, updated_by) VALUES
+        (1, 'Headquarters', 'Main company headquarters', 'DEPARTMENT', NULL, 1, NOW(), NOW(), 'system', 'system'),
+        (2, 'Engineering Department', 'Software development and technical operations', 'DEPARTMENT', 1, 1, NOW(), NOW(), 'system', 'system'),
+        (3, 'Backend Team', 'Backend services and API development', 'TEAM', 2, 1, NOW(), NOW(), 'system', 'system'),
+        (4, 'API Development', 'RESTful APIs and microservices', 'BUSINESS_DIRECTION', 3, 1, NOW(), NOW(), 'system', 'system'),
+        (5, 'Data Management API', 'Data file and content management', 'MODULE', 4, 1, NOW(), NOW(), 'system', 'system'),
+        (6, 'User Management API', 'User authentication and profile management', 'MODULE', 4, 2, NOW(), NOW(), 'system', 'system'),
+        (7, 'Test Module', 'Test module for API testing', 'MODULE', 4, 3, NOW(), NOW(), 'system', 'system')
+        ON CONFLICT (id) DO NOTHING;
+        
+        -- Update sequence to ensure future inserts start after the last manually inserted ID
+        SELECT setval('organization_nodes_id_seq', (SELECT MAX(id) FROM organization_nodes));
+        "
+        
+        # Create test user for API tests
+        PGPASSWORD=aP5WeC8GNHzQXfvNyEIrDnCkkmi4Jc8g psql -h localhost -p 5432 -U sdp_user -d static_data_platform_test -c "
+        -- Create test user for API tests
+        INSERT INTO users (id, username, email, password_hash, role, is_active, created_at, updated_at) VALUES
+        (1, 'testuser', 'testuser@test.com', '\$2a\$10\$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDi', 'USER', true, NOW(), NOW())
+        ON CONFLICT (username) DO NOTHING;
+        
+        -- Update sequence to ensure future inserts start after the last manually inserted ID
+        SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
         "
 
     - name: Build application for API tests
@@ -190,6 +218,34 @@ jobs:
         PGPASSWORD=aP5WeC8GNHzQXfvNyEIrDnCkkmi4Jc8g psql -h localhost -p 5432 -U sdp_user -d static_data_platform_test -c "
         CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
         CREATE EXTENSION IF NOT EXISTS \"pg_trgm\";
+        "
+        
+        # Initialize organization structure for tests
+        PGPASSWORD=aP5WeC8GNHzQXfvNyEIrDnCkkmi4Jc8g psql -h localhost -p 5432 -U sdp_user -d static_data_platform_test -c "
+        -- Insert basic organization structure for tests
+        INSERT INTO organization_nodes (id, name, description, type, parent_id, sort_order, created_at, updated_at, created_by, updated_by) VALUES
+        (1, 'Headquarters', 'Main company headquarters', 'DEPARTMENT', NULL, 1, NOW(), NOW(), 'system', 'system'),
+        (2, 'Engineering Department', 'Software development and technical operations', 'DEPARTMENT', 1, 1, NOW(), NOW(), 'system', 'system'),
+        (3, 'Backend Team', 'Backend services and API development', 'TEAM', 2, 1, NOW(), NOW(), 'system', 'system'),
+        (4, 'API Development', 'RESTful APIs and microservices', 'BUSINESS_DIRECTION', 3, 1, NOW(), NOW(), 'system', 'system'),
+        (5, 'Data Management API', 'Data file and content management', 'MODULE', 4, 1, NOW(), NOW(), 'system', 'system'),
+        (6, 'User Management API', 'User authentication and profile management', 'MODULE', 4, 2, NOW(), NOW(), 'system', 'system'),
+        (7, 'Test Module', 'Test module for API testing', 'MODULE', 4, 3, NOW(), NOW(), 'system', 'system')
+        ON CONFLICT (id) DO NOTHING;
+        
+        -- Update sequence to ensure future inserts start after the last manually inserted ID
+        SELECT setval('organization_nodes_id_seq', (SELECT MAX(id) FROM organization_nodes));
+        "
+        
+        # Create test user for tests
+        PGPASSWORD=aP5WeC8GNHzQXfvNyEIrDnCkkmi4Jc8g psql -h localhost -p 5432 -U sdp_user -d static_data_platform_test -c "
+        -- Create test user for tests
+        INSERT INTO users (id, username, email, password_hash, role, is_active, created_at, updated_at) VALUES
+        (1, 'testuser', 'testuser@test.com', '\$2a\$10\$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDi', 'USER', true, NOW(), NOW())
+        ON CONFLICT (username) DO NOTHING;
+        
+        -- Update sequence to ensure future inserts start after the last manually inserted ID
+        SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
         "
 
     - name: Run tests using ut-scripts

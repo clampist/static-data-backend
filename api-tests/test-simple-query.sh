@@ -8,7 +8,7 @@ echo "=================="
 echo "1. 登录获取token..."
 LOGIN_RESPONSE=$(curl -s -X POST http://localhost:8080/api/auth/login \
     -H "Content-Type: application/json" \
-    -d '{"username":"admin","password":"admin123"}')
+    -d '{"username":"testuser","password":"password123"}')
 
 echo "登录响应: $LOGIN_RESPONSE"
 

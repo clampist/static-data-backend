@@ -11,7 +11,7 @@ sleep 20
 echo "1. 测试登录..."
 LOGIN_RESPONSE=$(curl -s -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}')
+  -d '{"username":"testuser","password":"password123"}')
 
 if [ $? -eq 0 ] && echo "$LOGIN_RESPONSE" | grep -q "accessToken"; then
   echo "✅ 登录成功"

@@ -9,7 +9,7 @@ echo "=================================="
 echo "1. 测试登录API..."
 LOGIN_RESPONSE=$(curl -s -X POST http://localhost:8080/api/auth/login \
     -H "Content-Type: application/json" \
-    -d '{"username":"admin","password":"admin123"}')
+    -d '{"username":"testuser","password":"password123"}')
 
 if echo "$LOGIN_RESPONSE" | grep -q "accessToken"; then
     TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.accessToken')
