@@ -12,20 +12,20 @@ env:
   APP_VERSION: ${{ github.sha }}
   
   # 数据库配置 - 使用GitHub Secrets
-  SPRING_DATASOURCE_URL: ${{ secrets.DATABASE_URL }}
-  SPRING_DATASOURCE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+  SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/static_data_platform_test
+  SPRING_DATASOURCE_USERNAME: sdp_user
   SPRING_DATASOURCE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
   
   # JWT配置 - 使用GitHub Secrets
   APP_JWT_SECRET: ${{ secrets.JWT_SECRET }}
-  APP_JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION || '86400000' }}
+  APP_JWT_EXPIRATION: 86400000
   
   # Redis配置
-  SPRING_DATA_REDIS_HOST: ${{ secrets.REDIS_HOST || 'localhost' }}
-  SPRING_DATA_REDIS_PORT: ${{ secrets.REDIS_PORT || '6379' }}
+  SPRING_DATA_REDIS_HOST: localhost
+  SPRING_DATA_REDIS_PORT: 6379
   
   # CORS配置
-  CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5173' }}
+  CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173
 
 jobs:
   test:
@@ -33,7 +33,7 @@ jobs:
     
     services:
       postgres:
-        image: postgres:15
+        image: postgres:15-alpine
         env:
           POSTGRES_DB: static_data_platform_test
           POSTGRES_USER: sdp_user
@@ -72,6 +72,20 @@ jobs:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
+
+    - name: Initialize test database
+      run: |
+        # Wait for PostgreSQL to be ready
+        until pg_isready -h localhost -p 5432 -U sdp_user; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+        
+        # Create extensions and test database
+        PGPASSWORD=${{ secrets.DATABASE_PASSWORD }} psql -h localhost -p 5432 -U sdp_user -d static_data_platform_test -c "
+        CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
+        CREATE EXTENSION IF NOT EXISTS \"pg_trgm\";
+        "
 
     - name: Run tests
       run: ./mvnw test
