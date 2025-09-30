@@ -296,31 +296,31 @@ jobs:
         APP_JWT_EXPIRATION: 86400000
         CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173
 
-      - name: Download JaCoCo packages from test job
-        uses: actions/download-artifact@v4
-        with:
-          name: jacoco-packages
-          path: ./ut-scripts/packages/
+    - name: Download JaCoCo packages from test job
+      uses: actions/download-artifact@v4
+      with:
+        name: jacoco-packages
+        path: ./ut-scripts/packages/
 
-      - name: Copy JaCoCo packages to api-tests/cov
-        run: |
-          # Create cov directory
-          mkdir -p ./api-tests/cov
-          
-          # Copy compiled artifacts tar.gz file
-          echo "Copying compiled artifacts..."
-          find ./ut-scripts/packages/ -name "compiled-artifacts_*.tar.gz" -exec cp {} ./api-tests/cov/ \;
-          
-          # Copy source code tar.gz file
-          echo "Copying source code..."
-          find ./ut-scripts/packages/ -name "source-code_*.tar.gz" -exec cp {} ./api-tests/cov/ \;
-          
-          # List copied files
-          echo "Copied files:"
-          ls -la ./api-tests/cov/
+    - name: Copy JaCoCo packages to api-tests/cov
+      run: |
+        # Create cov directory
+        mkdir -p ./api-tests/cov
+        
+        # Copy compiled artifacts tar.gz file
+        echo "Copying compiled artifacts..."
+        find ./ut-scripts/packages/ -name "compiled-artifacts_*.tar.gz" -exec cp {} ./api-tests/cov/ \;
+        
+        # Copy source code tar.gz file
+        echo "Copying source code..."
+        find ./ut-scripts/packages/ -name "source-code_*.tar.gz" -exec cp {} ./api-tests/cov/ \;
+        
+        # List copied files
+        echo "Copied files:"
+        ls -la ./api-tests/cov/
 
-      - name: Generate API coverage report
-        run: bash -x ./api-tests/generate-report-standalone.sh
+    - name: Generate API coverage report
+      run: bash -x ./api-tests/generate-report-standalone.sh
 
     - name: Upload API test artifacts
       uses: actions/upload-artifact@v4
