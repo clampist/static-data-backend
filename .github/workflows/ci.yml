@@ -340,7 +340,7 @@ jobs:
           api-tests/cov/reports/latest/
         retention-days: 30
 
-  package:
+  output:
     needs: [test, api-test]
     runs-on: ubuntu-latest
     
@@ -361,23 +361,37 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
 
+    - name: Create output directory structure
+      run: |
+        # Create main output directory
+        mkdir -p ./output
+        cd ./output
+        
+        # Create subdirectories
+        mkdir -p ./src
+        mkdir -p ./target
+        mkdir -p ./ut/latest
+        mkdir -p ./at/latest
+        mkdir -p ./temp-packages
+        
+        echo "Created output directory structure:"
+        tree -a -L 3 || find . -type d | sort
+
     - name: Download UT coverage reports from test job
       uses: actions/download-artifact@v4
       with:
         name: ut-coverage-reports
-        path: ./ut/latest/
+        path: ./output/ut/latest/
 
     - name: Download JaCoCo packages from test job
       uses: actions/download-artifact@v4
       with:
         name: jacoco-packages
-        path: ./temp-packages/
+        path: ./output/temp-packages/
 
-    - name: Extract JaCoCo packages to src and target
+    - name: Extract JaCoCo packages to output/src and output/target
       run: |
-        # Create directories
-        mkdir -p ./src
-        mkdir -p ./target
+        cd ./output
         
         # Extract compiled artifacts to target/classes
         echo "Extracting compiled artifacts to target/classes..."
@@ -397,40 +411,39 @@ jobs:
         echo "Directory structure:"
         ls -la ./src/ || true
         ls -la ./target/ || true
-        
-        # Show complete directory tree
-        echo "Complete directory tree:"
-        tree -a -L 3 || find . -type d | head -20
 
     - name: Download API test artifacts from api-test job
       uses: actions/download-artifact@v4
       with:
         name: api-test-artifacts
-        path: ./at/latest/
+        path: ./output/at/latest/
 
-    - name: Show final directory structure
+    - name: Show final output directory structure
       run: |
-        echo "=== Final Directory Structure ==="
+        echo "=== Final Output Directory Structure ==="
         echo ""
-        echo "📁 Root directory contents:"
-        ls -la
+        echo "📁 Output root directory contents:"
+        ls -la ./output/
         echo ""
-        echo "📁 src/ directory structure:"
-        find ./src -type d | sort
+        echo "📁 output/src/ directory structure:"
+        find ./output/src -type d | sort
         echo ""
-        echo "📁 target/ directory structure:"
-        find ./target -type d | sort
+        echo "📁 output/target/ directory structure:"
+        find ./output/target -type d | sort
         echo ""
-        echo "📁 ut/latest/ directory contents:"
-        ls -la ./ut/latest/ || echo "ut/latest/ not found"
+        echo "📁 output/ut/latest/ directory contents:"
+        ls -la ./output/ut/latest/ || echo "ut/latest/ not found"
         echo ""
-        echo "📁 at/latest/ directory contents:"
-        ls -la ./at/latest/ || echo "at/latest/ not found"
+        echo "📁 output/at/latest/ directory contents:"
+        ls -la ./output/at/latest/ || echo "at/latest/ not found"
         echo ""
         echo "📊 File counts:"
-        echo "  - Source files: $(find ./src -type f | wc -l)"
-        echo "  - Target files: $(find ./target -type f | wc -l)"
-        echo "  - UT report files: $(find ./ut -type f 2>/dev/null | wc -l || echo 0)"
-        echo "  - AT report files: $(find ./at -type f 2>/dev/null | wc -l || echo 0)"
+        echo "  - Source files: $(find ./output/src -type f | wc -l)"
+        echo "  - Target files: $(find ./output/target -type f | wc -l)"
+        echo "  - UT report files: $(find ./output/ut -type f 2>/dev/null | wc -l || echo 0)"
+        echo "  - AT report files: $(find ./output/at -type f 2>/dev/null | wc -l || echo 0)"
+        echo ""
+        echo "📁 Complete output directory tree:"
+        tree ./output -a -L 4 || find ./output -type d | sort
 
 
