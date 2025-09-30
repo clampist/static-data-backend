@@ -83,16 +83,16 @@ main() {
     
     # 3. Create root organization node
     test_endpoint "POST" "/organization/nodes" '{
-        "name": "总公司",
-        "description": "公司总部",
+        "name": "Headquarters",
+        "description": "Main company headquarters",
         "type": "DEPARTMENT",
         "sortOrder": 1
     }' "Create root organization node / 创建根组织节点"
     
     # 4. Create child organization node
     test_endpoint "POST" "/organization/nodes" '{
-        "name": "产品部",
-        "description": "产品研发部门",
+        "name": "Product Department",
+        "description": "Product development department",
         "type": "DEPARTMENT",
         "parentId": 1,
         "sortOrder": 1
@@ -100,8 +100,8 @@ main() {
     
     # 5. Create team node
     test_endpoint "POST" "/organization/nodes" '{
-        "name": "前端团队",
-        "description": "前端开发团队",
+        "name": "Frontend Team",
+        "description": "Frontend development team",
         "type": "TEAM",
         "parentId": 2,
         "sortOrder": 1
@@ -118,13 +118,39 @@ main() {
     
     # 9. Update node
     test_endpoint "PUT" "/organization/nodes/3" '{
-        "name": "前端开发团队",
-        "description": "负责前端界面开发的团队",
+        "name": "Frontend Development Team",
+        "description": "Team responsible for frontend interface development",
         "sortOrder": 1
     }' "Update node / 更新节点"
     
     # 10. Get node statistics
     test_endpoint "GET" "/organization/nodes/2/stats" "" "Get node statistics / 获取节点统计信息"
+    
+    # 10.5. Create business direction node
+    test_endpoint "POST" "/organization/nodes" '{
+        "name": "Web Development",
+        "description": "Web application development",
+        "type": "BUSINESS_DIRECTION",
+        "parentId": 3,
+        "sortOrder": 1
+    }' "Create business direction node / 创建业务方向节点"
+    
+    # 10.6. Create module nodes for data file testing
+    test_endpoint "POST" "/organization/nodes" '{
+        "name": "User Dashboard",
+        "description": "Main user interface and dashboard",
+        "type": "MODULE",
+        "parentId": 4,
+        "sortOrder": 1
+    }' "Create module node / 创建模块节点"
+    
+    test_endpoint "POST" "/organization/nodes" '{
+        "name": "Data Management",
+        "description": "Data file and content management",
+        "type": "MODULE",
+        "parentId": 4,
+        "sortOrder": 2
+    }' "Create module node / 创建模块节点"
     
     # 11. Move node
     test_endpoint "PUT" "/organization/nodes/3/move" '{

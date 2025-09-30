@@ -37,8 +37,8 @@ ORG_RESPONSE=$(curl -s -X GET "http://localhost:8080/api/organization/nodes" \
 
 echo "$ORG_RESPONSE" | jq .
 
-# Extract the first available organization node ID
-ORG_NODE_ID=$(echo "$ORG_RESPONSE" | jq -r '.[0].id')
+# Extract the first MODULE type organization node ID
+ORG_NODE_ID=$(echo "$ORG_RESPONSE" | jq -r '.[] | select(.type == "MODULE") | .id' | head -1)
 echo "Using organization node ID: $ORG_NODE_ID"
 print_status "Retrieved organization nodes"
 
