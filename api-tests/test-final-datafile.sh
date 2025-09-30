@@ -31,15 +31,24 @@ TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.accessToken')
 print_status "Successfully logged in"
 
 # Get available organization nodes
-echo -e "\n--- Step 1.5: Get Organization Nodes ---"
-ORG_RESPONSE=$(curl -s -X GET "http://localhost:8080/api/organization/nodes" \
+echo -e "\n--- Step 1.5: Get Organization Tree ---"
+ORG_RESPONSE=$(curl -s -X GET "http://localhost:8080/api/organization/tree" \
   -H "Authorization: Bearer $TOKEN")
 
 echo "$ORG_RESPONSE" | jq .
 
-# Extract the first MODULE type organization node ID
-ORG_NODE_ID=$(echo "$ORG_RESPONSE" | jq -r '.[] | select(.type == "MODULE") | .id' | head -1)
+# Extract the first MODULE type organization node ID from the tree
+ORG_NODE_ID=$(echo "$ORG_RESPONSE" | jq -r '.. | select(.type == "MODULE")? | .id' | head -1)
 echo "Using organization node ID: $ORG_NODE_ID"
+
+# Check if we found a valid MODULE node
+if [ -z "$ORG_NODE_ID" ] || [ "$ORG_NODE_ID" = "null" ]; then
+    print_error "No MODULE type organization node found. Cannot create data file."
+    echo "Available nodes:"
+    echo "$ORG_RESPONSE" | jq '.. | select(.type)? | {id, name, type}'
+    exit 1
+fi
+
 print_status "Retrieved organization nodes"
 
 # Test 1: Get supported data types
