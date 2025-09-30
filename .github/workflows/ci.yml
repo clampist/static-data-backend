@@ -29,6 +29,7 @@ env:
 
 jobs:
   test:
+    name: UT Coverage Tests
     runs-on: ubuntu-latest
     
     services:
@@ -111,6 +112,14 @@ jobs:
       with:
         name: jacoco-packages
         path: ./ut-scripts/packages/
+        retention-days: 30
+
+    - name: Upload UT coverage reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ut-coverage-reports
+        path: ./ut-scripts/coverage-reports/jacoco/
         retention-days: 30
 
   api-test:
@@ -328,9 +337,7 @@ jobs:
       with:
         name: api-test-artifacts
         path: |
-          api-tests/jacoco.exec
-          api-tests/coverage-reports/
-          api-tests/test-results/
+          api-tests/cov/reports/latest/
         retention-days: 30
 
   build:
@@ -353,6 +360,43 @@ jobs:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
+
+    - name: Download UT coverage reports from test job
+      uses: actions/download-artifact@v4
+      with:
+        name: ut-coverage-reports
+        path: ./ut/latest/
+
+    - name: Download JaCoCo packages from test job
+      uses: actions/download-artifact@v4
+      with:
+        name: jacoco-packages
+        path: ./temp-packages/
+
+    - name: Extract JaCoCo packages to src and target
+      run: |
+        # Create directories
+        mkdir -p ./src
+        mkdir -p ./target
+        
+        # Extract compiled artifacts to target/classes
+        echo "Extracting compiled artifacts to target/classes..."
+        find ./temp-packages/ -name "compiled-artifacts_*.tar.gz" -exec tar -xzf {} -C ./target \;
+        
+        # Extract source code to src/main/java
+        echo "Extracting source code to src/main/java..."
+        find ./temp-packages/ -name "source-code_*.tar.gz" -exec tar -xzf {} -C ./src \;
+        
+        # List extracted files
+        echo "Extracted files:"
+        find ./src -type f | head -5
+        find ./target -type f | head -5
+
+    - name: Download API test artifacts from api-test job
+      uses: actions/download-artifact@v4
+      with:
+        name: api-test-artifacts
+        path: ./at/latest/
 
     - name: Build with Maven
       run: ./mvnw clean package -DskipTests
