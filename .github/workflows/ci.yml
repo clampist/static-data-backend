@@ -176,7 +176,7 @@ jobs:
         ON CONFLICT (id) DO NOTHING;
         
         -- Create test user for API tests
-        INSERT INTO users (id, username, email, password_hash, role, is_active, created_at, updated_at) VALUES
+        INSERT INTO users (id, username, email, password, role, enabled, created_at, updated_at) VALUES
         (1, 'testuser', 'testuser@test.com', '\$2a\$10\$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDi', 'USER', true, NOW(), NOW())
         ON CONFLICT (username) DO NOTHING;
         
