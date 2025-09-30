@@ -13,7 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 /**
- * JWT工具类，用于生成、验证和解析JWT token
+ * JWT Utility Class for generating, validating and parsing JWT tokens
  */
 @Component
 @Slf4j
@@ -26,7 +26,7 @@ public class JwtUtils {
     private int jwtExpirationMs;
 
     /**
-     * 根据用户认证信息生成JWT token
+     * Find byUserAuthenticationInformationGenerateJWT token
      */
     public String generateJwtToken(Authentication authentication) {
         UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
@@ -34,7 +34,7 @@ public class JwtUtils {
     }
 
     /**
-     * 根据用户名生成JWT token
+     * Find byUsernameGenerateJWT token
      */
     public String generateJwtToken(String username) {
         Date expiryDate = new Date((new Date()).getTime() + jwtExpirationMs);
@@ -48,7 +48,7 @@ public class JwtUtils {
     }
 
     /**
-     * 从JWT token中获取用户名
+     * Get username from JWT token
      */
     public String getUsernameFromJwtToken(String token) {
         return Jwts.parser()
@@ -60,7 +60,7 @@ public class JwtUtils {
     }
 
     /**
-     * 验证JWT token是否有效
+     * ValidateJWT tokenYesNoValid
      */
     public boolean validateJwtToken(String authToken) {
         try {
@@ -84,7 +84,7 @@ public class JwtUtils {
     }
 
     /**
-     * 检查token是否即将过期（剩余时间少于30分钟）
+     * Check if token is about to expire (remaining time less than 30 minutes)
      */
     public boolean isTokenExpiringSoon(String token) {
         try {
@@ -98,16 +98,16 @@ public class JwtUtils {
             Date now = new Date();
             long timeUntilExpiration = expiration.getTime() - now.getTime();
             
-            // 如果剩余时间少于30分钟（1800000毫秒），返回true
+            // If remaining time less than 30 minutes (1800000 milliseconds), return true
             return timeUntilExpiration < 1800000;
         } catch (Exception e) {
             log.error("Error checking token expiration: {}", e.getMessage());
-            return true; // 如果无法解析，假设即将过期
+            return true; // If cannot parse, set as about to expire
         }
     }
 
     /**
-     * 刷新JWT token
+     * RefreshJWT token
      */
     public String refreshToken(String token) {
         try {
@@ -126,7 +126,7 @@ public class JwtUtils {
     }
 
     /**
-     * 获取token的剩余有效时间（毫秒）
+     * Get remaining valid time of token (milliseconds)
      */
     public long getTokenRemainingTime(String token) {
         try {
@@ -146,14 +146,14 @@ public class JwtUtils {
     }
 
     /**
-     * 获取JWT过期时间（毫秒）
+     * Get JWT expiration time (milliseconds)
      */
     public long getJwtExpirationMs() {
         return jwtExpirationMs;
     }
 
     /**
-     * 获取签名密钥
+     * GetSignatureKey
      */
     private SecretKey getSigningKey() {
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);

@@ -7,19 +7,19 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * 创建组织节点请求DTO
+ * Create Organization Node Request DTO
  */
 @Data
 public class CreateOrganizationNodeRequest {
     
-    @NotBlank(message = "节点名称不能为空")
-    @Size(min = 2, max = 50, message = "节点名称长度必须在2-50个字符之间")
+    @NotBlank(message = "Node name cannot be empty")
+    @Size(min = 2, max = 50, message = "Node name length must be between 2-50 characters")
     private String name;
     
-    @Size(max = 200, message = "描述长度不能超过200个字符")
+    @Size(max = 200, message = "Description length cannot exceed 200 characters")
     private String description;
     
-    @NotNull(message = "节点类型不能为空")
+    @NotNull(message = "Node type cannot be empty")
     private OrganizationNode.NodeType type;
     
     private Long parentId;

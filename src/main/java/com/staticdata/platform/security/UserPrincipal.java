@@ -13,7 +13,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 /**
- * 自定义用户详情实现，用于Spring Security认证
+ * Custom user details implementation for Spring Security authentication
  */
 @Data
 @NoArgsConstructor
@@ -29,7 +29,7 @@ public class UserPrincipal implements UserDetails {
     private Boolean enabled;
 
     /**
-     * 从User实体创建UserPrincipal
+     * Create UserPrincipal from User entity
      */
     public static UserPrincipal create(User user) {
         return new UserPrincipal(

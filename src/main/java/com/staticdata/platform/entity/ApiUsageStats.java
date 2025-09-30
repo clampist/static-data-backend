@@ -6,7 +6,7 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 /**
- * API使用统计实体类
+ * API Usage Statistics Entity
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

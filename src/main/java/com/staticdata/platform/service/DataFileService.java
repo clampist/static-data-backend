@@ -38,28 +38,28 @@ public class DataFileService {
   public DataFileDto createDataFile(CreateDataFileRequest request) {
     log.info("Creating data file: {}", request.getName());
 
-    // 验证组织节点是否存在
+    // Validate if organization node exists
     OrganizationNode organizationNode =
         organizationNodeRepository.findById(request.getOrganizationNodeId()).orElseThrow(
-            () -> new ResourceNotFoundException("组织节点不存在，ID: " + request.getOrganizationNodeId()));
+            () -> new ResourceNotFoundException("Organization node does not exist, ID: " + request.getOrganizationNodeId()));
 
-    // 验证模块类型（数据文件只能挂在MODULE类型的节点下）
+    // Validate module type (data files can only be attached to MODULE type nodes)
     if (organizationNode.getType() != OrganizationNode.NodeType.MODULE) {
-      throw new BusinessException("数据文件只能挂在功能模块下，当前节点类型为: " + organizationNode.getType());
+      throw new BusinessException("Data file can only be attached to functional modules, current node type is: " + organizationNode.getType());
     }
 
-    // 检查文件名在同一组织节点下是否唯一
+    // Check if file name is unique under the same Organization Node
     if (dataFileRepository.existsByNameAndOrganizationNodeId(request.getName(),
         request.getOrganizationNodeId())) {
-      throw new BusinessException("在同一模块下，数据文件名已存在: " + request.getName());
+      throw new BusinessException("Data file name already exists under the same module: " + request.getName());
     }
 
-    // 获取当前用户
+    // GetCurrentUser
     String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
     User owner = userRepository.findByUsername(currentUsername)
-        .orElseThrow(() -> new ResourceNotFoundException("用户不存在: " + currentUsername));
+        .orElseThrow(() -> new ResourceNotFoundException("UserDoes not exist: " + currentUsername));
 
-    // 创建数据文件实体
+    // CreateData FileEntity
     DataFile dataFile = new DataFile();
     dataFile.setName(request.getName());
     dataFile.setDescription(request.getDescription());
@@ -67,7 +67,7 @@ public class DataFileService {
     dataFile.setOwner(owner);
     dataFile.setAccessLevel(request.getAccessLevel());
 
-    // 处理列定义
+    // Handle column definitions
     if (request.getColumnDefinitions() != null) {
       List<DataFile.ColumnDefinition> columnDefinitions = request.getColumnDefinitions().stream()
           .map(this::convertToColumnDefinition).collect(Collectors.toList());
@@ -75,17 +75,17 @@ public class DataFileService {
       dataFile.setColumnCount(columnDefinitions.size());
     }
 
-    // 处理数据行
+    // HandleDataRow
     if (request.getDataRows() != null) {
       dataFile.setDataRows(request.getDataRows());
       dataFile.setRowCount(request.getDataRows().size());
     }
 
-    // 生成文件哈希
+    // GenerateFileHash
     String fileHash = generateFileHash(dataFile);
     dataFile.setFileHash(fileHash);
 
-    // 设置审计信息
+    // Set audit information
     dataFile.setCreatedBy(currentUsername);
     dataFile.setUpdatedBy(currentUsername);
 
@@ -99,19 +99,19 @@ public class DataFileService {
   public DataFileDto updateDataFile(Long id, UpdateDataFileRequest request) {
     log.info("Updating data file with ID: {}", id);
     DataFile existingDataFile = dataFileRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("数据文件不存在，ID: " + id));
+        .orElseThrow(() -> new ResourceNotFoundException("Data file does not exist, ID: " + id));
 
-    // 检查权限（只有所有者可以修改）
+    // Check permission (only file owner can modify)
     String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
     if (!existingDataFile.getOwner().getUsername().equals(currentUsername)) {
-      throw new BusinessException("只有文件所有者可以修改数据文件");
+      throw new BusinessException("Only file owner can modify data file");
     }
 
-    // 更新基本信息
+    // Update basic information
     if (request.getName() != null && !request.getName().equals(existingDataFile.getName())) {
       if (dataFileRepository.existsByNameAndOrganizationNodeIdAndIdIsNot(request.getName(),
           existingDataFile.getOrganizationNode().getId(), id)) {
-        throw new BusinessException("在同一模块下，数据文件名已存在: " + request.getName());
+        throw new BusinessException("Data file name already exists under the same module: " + request.getName());
       }
       existingDataFile.setName(request.getName());
     }
@@ -124,7 +124,7 @@ public class DataFileService {
       existingDataFile.setAccessLevel(request.getAccessLevel());
     }
 
-    // 更新列定义
+    // Update column definitions
     if (request.getColumnDefinitions() != null) {
       List<DataFile.ColumnDefinition> columnDefinitions = request.getColumnDefinitions().stream()
           .map(this::convertToColumnDefinition).collect(Collectors.toList());
@@ -132,17 +132,17 @@ public class DataFileService {
       existingDataFile.setColumnCount(columnDefinitions.size());
     }
 
-    // 更新数据行
+    // UpdateDataRow
     if (request.getDataRows() != null) {
       existingDataFile.setDataRows(request.getDataRows());
       existingDataFile.setRowCount(request.getDataRows().size());
     }
 
-    // 重新生成文件哈希
+    // Regenerate file hash
     String newFileHash = generateFileHash(existingDataFile);
     existingDataFile.setFileHash(newFileHash);
 
-    // 更新审计信息
+    // Update audit information
     existingDataFile.setUpdatedBy(currentUsername);
     existingDataFile.setUpdatedAt(LocalDateTime.now());
 
@@ -156,12 +156,12 @@ public class DataFileService {
   public void deleteDataFile(Long id) {
     log.info("Deleting data file with ID: {}", id);
     DataFile existingDataFile = dataFileRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("数据文件不存在，ID: " + id));
+        .orElseThrow(() -> new ResourceNotFoundException("Data file does not exist, ID: " + id));
 
-    // 检查权限（只有所有者可以删除）
+    // Check permission (only file owner can delete)
     String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
     if (!existingDataFile.getOwner().getUsername().equals(currentUsername)) {
-      throw new BusinessException("只有文件所有者可以删除数据文件");
+      throw new BusinessException("Only file owner can delete data file");
     }
 
     dataFileRepository.delete(existingDataFile);
@@ -172,16 +172,16 @@ public class DataFileService {
   public DataFileDto getDataFileById(Long id) {
     log.debug("Fetching data file by ID: {}", id);
     DataFile dataFile = dataFileRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("数据文件不存在，ID: " + id));
+        .orElseThrow(() -> new ResourceNotFoundException("Data file does not exist, ID: " + id));
 
-    // 检查访问权限
+    // Check access permission
     String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
     User currentUser = userRepository.findByUsername(currentUsername)
-        .orElseThrow(() -> new ResourceNotFoundException("用户不存在: " + currentUsername));
+        .orElseThrow(() -> new ResourceNotFoundException("UserDoes not exist: " + currentUsername));
 
     if (dataFile.getAccessLevel() == DataFile.AccessLevel.PRIVATE
         && !dataFile.getOwner().getId().equals(currentUser.getId())) {
-      throw new BusinessException("没有权限访问此数据文件");
+      throw new BusinessException("No permission to access this data file");
     }
 
     return convertToDto(dataFile);
@@ -191,17 +191,17 @@ public class DataFileService {
   public Page<DataFileDto> queryDataFiles(DataFileQueryRequest request) {
     log.debug("Querying data files with conditions: {}", request);
 
-    // 构建分页和排序
+    // Build pagination and sort
     Sort sort = Sort.by(Sort.Direction.fromString(request.getSortDirection()), request.getSortBy());
     Pageable pageable = PageRequest.of(request.getPage() - 1, request.getSize(), sort);
 
-    // 执行查询 - 使用最简单的查询避免PostgreSQL问题
+    // Execute query - use simplest query to avoid PostgreSQL issues
     Page<DataFile> dataFiles = dataFileRepository.findAll(pageable);
 
-    // 过滤用户可访问的文件
+    // Filter files accessible by user
     String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
     User currentUser = userRepository.findByUsername(currentUsername)
-        .orElseThrow(() -> new ResourceNotFoundException("用户不存在: " + currentUsername));
+        .orElseThrow(() -> new ResourceNotFoundException("UserDoes not exist: " + currentUsername));
 
     List<DataFileDto> accessibleFiles = dataFiles.getContent().stream()
         .filter(df -> df.getAccessLevel() == DataFile.AccessLevel.PUBLIC
@@ -218,10 +218,10 @@ public class DataFileService {
     List<DataFile> dataFiles =
         dataFileRepository.findByOrganizationNodeIdOrderByCreatedAtDesc(organizationNodeId);
 
-    // 过滤用户可访问的文件
+    // Filter files accessible by user
     String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
     User currentUser = userRepository.findByUsername(currentUsername)
-        .orElseThrow(() -> new ResourceNotFoundException("用户不存在: " + currentUsername));
+        .orElseThrow(() -> new ResourceNotFoundException("UserDoes not exist: " + currentUsername));
 
     return dataFiles.stream()
         .filter(df -> df.getAccessLevel() == DataFile.AccessLevel.PUBLIC
@@ -242,10 +242,10 @@ public class DataFileService {
     List<DataFile> dataFiles =
         dataFileRepository.findByNameContainingIgnoreCaseOrderByCreatedAtDesc(keyword);
 
-    // 过滤用户可访问的文件
+    // Filter files accessible by user
     String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
     User currentUser = userRepository.findByUsername(currentUsername)
-        .orElseThrow(() -> new ResourceNotFoundException("用户不存在: " + currentUsername));
+        .orElseThrow(() -> new ResourceNotFoundException("UserDoes not exist: " + currentUsername));
 
     return dataFiles.stream()
         .filter(df -> df.getAccessLevel() == DataFile.AccessLevel.PUBLIC
@@ -258,10 +258,10 @@ public class DataFileService {
     log.debug("Fetching data files by data type: {}", dataType);
     List<DataFile> allDataFiles = dataFileRepository.findAllDataFiles();
 
-    // 过滤用户可访问的文件和包含指定数据类型的文件
+    // Filter files accessible by user and containing specified data type
     String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
     User currentUser = userRepository.findByUsername(currentUsername)
-        .orElseThrow(() -> new ResourceNotFoundException("用户不存在: " + currentUsername));
+        .orElseThrow(() -> new ResourceNotFoundException("UserDoes not exist: " + currentUsername));
 
     return allDataFiles.stream()
         .filter(df -> df.getAccessLevel() == DataFile.AccessLevel.PUBLIC
@@ -277,10 +277,10 @@ public class DataFileService {
     Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "createdAt"));
     List<DataFile> dataFiles = dataFileRepository.findRecentDataFiles(pageable);
 
-    // 过滤用户可访问的文件
+    // Filter files accessible by user
     String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
     User currentUser = userRepository.findByUsername(currentUsername)
-        .orElseThrow(() -> new ResourceNotFoundException("用户不存在: " + currentUsername));
+        .orElseThrow(() -> new ResourceNotFoundException("UserDoes not exist: " + currentUsername));
 
     return dataFiles.stream()
         .filter(df -> df.getAccessLevel() == DataFile.AccessLevel.PUBLIC
@@ -292,12 +292,12 @@ public class DataFileService {
   public Map<String, Object> getDataFileStatistics() {
     log.debug("Fetching data file statistics");
 
-    // 直接使用Repository方法计算统计信息，避免复杂的查询
+    // Use repository methods directly to calculate statistics, avoid complex queries
     long totalFiles = dataFileRepository.count();
     long publicFiles = dataFileRepository.countByAccessLevel(DataFile.AccessLevel.PUBLIC);
     long privateFiles = dataFileRepository.countByAccessLevel(DataFile.AccessLevel.PRIVATE);
 
-    // 计算平均行数和列数
+    // Calculate average row count and column count
     List<DataFile> allFiles = dataFileRepository.findAll();
     double avgRowCount = allFiles.isEmpty() ? 0.0
         : allFiles.stream().mapToInt(df -> df.getRowCount() != null ? df.getRowCount() : 0)
@@ -316,7 +316,7 @@ public class DataFileService {
     return statistics;
   }
 
-  // 私有辅助方法
+  // Private helper methods
   private DataFile.ColumnDefinition convertToColumnDefinition(
       CreateDataFileRequest.ColumnDefinitionRequest request) {
     DataFile.ColumnDefinition columnDef = new DataFile.ColumnDefinition();

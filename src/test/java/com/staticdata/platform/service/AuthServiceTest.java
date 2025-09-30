@@ -28,7 +28,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * 认证服务集成测试 使用@SpringBootTest替代@ExtendWith(MockitoExtension.class)，简化mock配置
+ * Authentication service integration test using @SpringBootTest instead of @ExtendWith(MockitoExtension.class) to simplify mock configuration
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -56,7 +56,7 @@ class AuthServiceTest {
 
   @BeforeEach
   void setUp() {
-    // 创建测试用户
+    // Create test user
     testUser = new User();
     testUser.setId(1L);
     testUser.setUsername("testuser");
@@ -66,13 +66,13 @@ class AuthServiceTest {
     testUser.setRole(UserRole.USER);
     testUser.setEnabled(true);
 
-    // 创建测试用户主体
+    // Create test user principal
     testUserPrincipal = UserPrincipal.create(testUser);
 
-    // 设置登录请求
+    // Setup login request
     loginRequest = new LoginRequest().setUsername("testuser").setPassword("password");
 
-    // 设置注册请求
+    // Setup register request
     registerRequest =
         new RegisterRequest("newuser", "new@example.com", "password", "password", "New User");
   }
@@ -146,7 +146,7 @@ class AuthServiceTest {
     IllegalArgumentException exception =
         assertThrows(IllegalArgumentException.class, () -> authService.register(registerRequest));
 
-    assertEquals("用户名已存在: newuser", exception.getMessage());
+    assertEquals("UsernameAlready exists: newuser", exception.getMessage());
     verify(userRepository).existsByUsername("newuser");
   }
 
@@ -160,7 +160,7 @@ class AuthServiceTest {
     IllegalArgumentException exception =
         assertThrows(IllegalArgumentException.class, () -> authService.register(registerRequest));
 
-    assertEquals("邮箱已存在: new@example.com", exception.getMessage());
+    assertEquals("Email already exists: new@example.com", exception.getMessage());
     verify(userRepository).existsByEmail("new@example.com");
   }
 
@@ -173,7 +173,7 @@ class AuthServiceTest {
     IllegalArgumentException exception =
         assertThrows(IllegalArgumentException.class, () -> authService.register(registerRequest));
 
-    assertEquals("密码和确认密码不匹配", exception.getMessage());
+    assertEquals("Password and confirm password do not match", exception.getMessage());
   }
 
   @Test
@@ -214,7 +214,7 @@ class AuthServiceTest {
     IllegalArgumentException exception =
         assertThrows(IllegalArgumentException.class, () -> authService.refreshToken(invalidToken));
 
-    assertEquals("无效的token", exception.getMessage());
+    assertEquals("Invalid token", exception.getMessage());
     verify(jwtUtils).validateJwtToken(invalidToken);
   }
 
@@ -277,7 +277,7 @@ class AuthServiceTest {
     IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
         () -> authService.getUserFromToken(invalidToken));
 
-    assertEquals("无效的token", exception.getMessage());
+    assertEquals("Invalid token", exception.getMessage());
     verify(jwtUtils).validateJwtToken(invalidToken);
   }
 

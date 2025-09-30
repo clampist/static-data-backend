@@ -6,7 +6,7 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 /**
- * 审计日志实体类
+ * Audit Log Entity
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

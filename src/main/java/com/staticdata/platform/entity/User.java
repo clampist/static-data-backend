@@ -9,7 +9,7 @@ import lombok.experimental.Accessors;
 import java.time.LocalDateTime;
 
 /**
- * 用户实体类
+ * User Entity
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

@@ -24,251 +24,240 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 组织管理控制器
- * 处理组织架构相关的HTTP请求
+ * Organization Management Controller Handles organization-related HTTP requests
  */
 @RestController
 @RequestMapping("/organization")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "组织管理", description = "组织架构管理相关API")
+@Tag(name = "Organization Management",
+        description = "Organization structure management related APIs")
 public class OrganizationController {
 
     private final OrganizationService organizationService;
 
     /**
-     * 获取完整的组织树
+     * Get complete organization tree
      */
     @GetMapping("/tree")
-    @Operation(summary = "获取组织树", description = "获取完整的组织架构树状结构")
+    @Operation(summary = "Get organization tree",
+            description = "Get complete organization structure tree")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "获取成功", 
-                    content = @Content(schema = @Schema(implementation = OrganizationNodeDto.class))),
-        @ApiResponse(responseCode = "401", description = "未认证"),
-        @ApiResponse(responseCode = "403", description = "权限不足")
-    })
+            @ApiResponse(responseCode = "200", description = "Retrieved successfully",
+                    content = @Content(
+                            schema = @Schema(implementation = OrganizationNodeDto.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Insufficient permissions")})
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<List<OrganizationNodeDto>> getOrganizationTree() {
         log.info("Getting organization tree");
-        
+
         List<OrganizationNodeDto> tree = organizationService.getOrganizationTree();
         return ResponseEntity.ok(tree);
     }
 
     /**
-     * 根据父节点ID获取子节点
+     * Get child nodes by parent node ID
      */
     @GetMapping("/nodes")
-    @Operation(summary = "获取子节点", description = "根据父节点ID获取直接子节点列表")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "获取成功"),
-        @ApiResponse(responseCode = "401", description = "未认证"),
-        @ApiResponse(responseCode = "403", description = "权限不足")
-    })
+    @Operation(summary = "Get child nodes",
+            description = "Get direct child nodes list by parent node ID")
+    @ApiResponses(
+            value = {@ApiResponse(responseCode = "200", description = "Retrieved successfully"),
+                    @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+                    @ApiResponse(responseCode = "403", description = "Insufficient permissions")})
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<List<OrganizationNodeDto>> getChildrenByParentId(
-            @Parameter(description = "父节点ID，为空时获取根节点")
-            @RequestParam(required = false) Long parentId) {
-        
+            @Parameter(description = "Parent Node ID, get root nodes when empty") @RequestParam(
+                    required = false) Long parentId) {
+
         log.info("Getting children for parent node: {}", parentId);
-        
+
         List<OrganizationNodeDto> children = organizationService.getChildrenByParentId(parentId);
         return ResponseEntity.ok(children);
     }
 
     /**
-     * 根据ID获取节点详情
+     * Get node details by ID
      */
     @GetMapping("/nodes/{id}")
-    @Operation(summary = "获取节点详情", description = "根据节点ID获取详细信息")
+    @Operation(summary = "Get node details", description = "Get detailed information by node ID")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "获取成功", 
-                    content = @Content(schema = @Schema(implementation = OrganizationNodeDto.class))),
-        @ApiResponse(responseCode = "404", description = "节点不存在"),
-        @ApiResponse(responseCode = "401", description = "未认证"),
-        @ApiResponse(responseCode = "403", description = "权限不足")
-    })
+            @ApiResponse(responseCode = "200", description = "Retrieved successfully",
+                    content = @Content(
+                            schema = @Schema(implementation = OrganizationNodeDto.class))),
+            @ApiResponse(responseCode = "404", description = "Node does not exist"),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Insufficient permissions")})
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrganizationNodeDto> getNodeById(
-            @Parameter(description = "节点ID", required = true)
-            @PathVariable Long id) {
-        
+            @Parameter(description = "Node ID", required = true) @PathVariable Long id) {
+
         log.info("Getting organization node by id: {}", id);
-        
+
         OrganizationNodeDto node = organizationService.getNodeById(id);
         return ResponseEntity.ok(node);
     }
 
     /**
-     * 创建组织节点
+     * Create organization node
      */
     @PostMapping("/nodes")
-    @Operation(summary = "创建组织节点", description = "创建新的组织节点")
+    @Operation(summary = "Create organization node", description = "Create new organization node")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "创建成功", 
-                    content = @Content(schema = @Schema(implementation = OrganizationNodeDto.class))),
-        @ApiResponse(responseCode = "400", description = "请求参数错误"),
-        @ApiResponse(responseCode = "409", description = "节点名称冲突"),
-        @ApiResponse(responseCode = "401", description = "未认证"),
-        @ApiResponse(responseCode = "403", description = "权限不足")
-    })
+            @ApiResponse(responseCode = "201", description = "Created successfully",
+                    content = @Content(
+                            schema = @Schema(implementation = OrganizationNodeDto.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
+            @ApiResponse(responseCode = "409", description = "Node name conflict"),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Insufficient permissions")})
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrganizationNodeDto> createNode(
-            @Parameter(description = "创建节点请求信息", required = true)
-            @Valid @RequestBody CreateOrganizationNodeRequest request) {
-        
+            @Parameter(description = "Create node request information",
+                    required = true) @Valid @RequestBody CreateOrganizationNodeRequest request) {
+
         log.info("Creating organization node: {}", request.getName());
-        
+
         OrganizationNodeDto createdNode = organizationService.createNode(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdNode);
     }
 
     /**
-     * 更新组织节点
+     * Update organization node
      */
     @PutMapping("/nodes/{id}")
-    @Operation(summary = "更新组织节点", description = "更新指定节点的信息")
+    @Operation(summary = "Update organization node",
+            description = "Update specified node information")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "更新成功", 
-                    content = @Content(schema = @Schema(implementation = OrganizationNodeDto.class))),
-        @ApiResponse(responseCode = "400", description = "请求参数错误"),
-        @ApiResponse(responseCode = "404", description = "节点不存在"),
-        @ApiResponse(responseCode = "409", description = "节点名称冲突"),
-        @ApiResponse(responseCode = "401", description = "未认证"),
-        @ApiResponse(responseCode = "403", description = "权限不足")
-    })
+            @ApiResponse(responseCode = "200", description = "Updated successfully",
+                    content = @Content(
+                            schema = @Schema(implementation = OrganizationNodeDto.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
+            @ApiResponse(responseCode = "404", description = "Node does not exist"),
+            @ApiResponse(responseCode = "409", description = "Node name conflict"),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Insufficient permissions")})
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrganizationNodeDto> updateNode(
-            @Parameter(description = "节点ID", required = true)
-            @PathVariable Long id,
-            @Parameter(description = "更新节点请求信息", required = true)
-            @Valid @RequestBody UpdateOrganizationNodeRequest request) {
-        
+            @Parameter(description = "Node ID", required = true) @PathVariable Long id,
+            @Parameter(description = "Update node request information",
+                    required = true) @Valid @RequestBody UpdateOrganizationNodeRequest request) {
+
         log.info("Updating organization node: {}", id);
-        
+
         OrganizationNodeDto updatedNode = organizationService.updateNode(id, request);
         return ResponseEntity.ok(updatedNode);
     }
 
     /**
-     * 删除组织节点
+     * Delete organization node
      */
     @DeleteMapping("/nodes/{id}")
-    @Operation(summary = "删除组织节点", description = "删除指定的组织节点")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "204", description = "删除成功"),
-        @ApiResponse(responseCode = "400", description = "无法删除（包含子节点或关联数据）"),
-        @ApiResponse(responseCode = "404", description = "节点不存在"),
-        @ApiResponse(responseCode = "401", description = "未认证"),
-        @ApiResponse(responseCode = "403", description = "权限不足")
-    })
+    @Operation(summary = "Delete organization node",
+            description = "Delete specified organization node")
+    @ApiResponses(value = {@ApiResponse(responseCode = "204", description = "Deleted successfully"),
+            @ApiResponse(responseCode = "400",
+                    description = "Cannot delete (contains child nodes or associated data)"),
+            @ApiResponse(responseCode = "404", description = "Node does not exist"),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Insufficient permissions")})
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<Void> deleteNode(
-            @Parameter(description = "节点ID", required = true)
-            @PathVariable Long id) {
-        
+            @Parameter(description = "Node ID", required = true) @PathVariable Long id) {
+
         log.info("Deleting organization node: {}", id);
-        
+
         organizationService.deleteNode(id);
         return ResponseEntity.noContent().build();
     }
 
     /**
-     * 搜索组织节点
+     * Search organization nodes
      */
     @GetMapping("/search")
-    @Operation(summary = "搜索组织节点", description = "根据关键词搜索组织节点")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "搜索成功"),
-        @ApiResponse(responseCode = "401", description = "未认证"),
-        @ApiResponse(responseCode = "403", description = "权限不足")
-    })
+    @Operation(summary = "Search organization nodes",
+            description = "Search organization nodes by keywords")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Search successful"),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Insufficient permissions")})
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<List<OrganizationNodeDto>> searchNodes(
-            @Parameter(description = "搜索关键词")
-            @RequestParam String keyword) {
-        
+            @Parameter(description = "Search keywords") @RequestParam String keyword) {
+
         log.info("Searching organization nodes with keyword: {}", keyword);
-        
+
         List<OrganizationNodeDto> results = organizationService.searchNodes(keyword);
         return ResponseEntity.ok(results);
     }
 
     /**
-     * 移动节点
+     * Move node
      */
     @PutMapping("/nodes/{id}/move")
-    @Operation(summary = "移动节点", description = "将节点移动到新的父节点下")
+    @Operation(summary = "Move node", description = "Move node to new parent node")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "移动成功", 
-                    content = @Content(schema = @Schema(implementation = OrganizationNodeDto.class))),
-        @ApiResponse(responseCode = "400", description = "移动失败（循环引用或名称冲突）"),
-        @ApiResponse(responseCode = "404", description = "节点不存在"),
-        @ApiResponse(responseCode = "401", description = "未认证"),
-        @ApiResponse(responseCode = "403", description = "权限不足")
-    })
+            @ApiResponse(responseCode = "200", description = "Moved successfully",
+                    content = @Content(
+                            schema = @Schema(implementation = OrganizationNodeDto.class))),
+            @ApiResponse(responseCode = "400",
+                    description = "Move failed (circular reference or name conflict)"),
+            @ApiResponse(responseCode = "404", description = "Node does not exist"),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Insufficient permissions")})
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrganizationNodeDto> moveNode(
-            @Parameter(description = "节点ID", required = true)
-            @PathVariable Long id,
-            @Parameter(description = "新的父节点ID，null表示移动到根节点")
-            @RequestBody Map<String, Long> request) {
-        
+            @Parameter(description = "Node ID", required = true) @PathVariable Long id, @Parameter(
+                    description = "New parent node ID, null means move to root node") @RequestBody Map<String, Long> request) {
+
         Long newParentId = request.get("parentId");
         log.info("Moving node {} to parent {}", id, newParentId);
-        
+
         OrganizationNodeDto movedNode = organizationService.moveNode(id, newParentId);
         return ResponseEntity.ok(movedNode);
     }
 
     /**
-     * 获取节点类型列表
+     * Get node type list
      */
     @GetMapping("/node-types")
-    @Operation(summary = "获取节点类型", description = "获取所有可用的节点类型")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "获取成功"),
-        @ApiResponse(responseCode = "401", description = "未认证"),
-        @ApiResponse(responseCode = "403", description = "权限不足")
-    })
+    @Operation(summary = "Get node types", description = "Get all available node types")
+    @ApiResponses(
+            value = {@ApiResponse(responseCode = "200", description = "Retrieved successfully"),
+                    @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+                    @ApiResponse(responseCode = "403", description = "Insufficient permissions")})
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrganizationNode.NodeType[]> getNodeTypes() {
         log.info("Getting node types");
-        
+
         OrganizationNode.NodeType[] types = OrganizationNode.NodeType.values();
         return ResponseEntity.ok(types);
     }
 
     /**
-     * 获取节点的统计信息
+     * Get node statistics
      */
     @GetMapping("/nodes/{id}/stats")
-    @Operation(summary = "获取节点统计", description = "获取指定节点的统计信息")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "获取成功"),
-        @ApiResponse(responseCode = "404", description = "节点不存在"),
-        @ApiResponse(responseCode = "401", description = "未认证"),
-        @ApiResponse(responseCode = "403", description = "权限不足")
-    })
+    @Operation(summary = "Get node statistics",
+            description = "Get statistics information of specified node")
+    @ApiResponses(
+            value = {@ApiResponse(responseCode = "200", description = "Retrieved successfully"),
+                    @ApiResponse(responseCode = "404", description = "Node does not exist"),
+                    @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+                    @ApiResponse(responseCode = "403", description = "Insufficient permissions")})
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<Map<String, Object>> getNodeStats(
-            @Parameter(description = "节点ID", required = true)
-            @PathVariable Long id) {
-        
+            @Parameter(description = "Node ID", required = true) @PathVariable Long id) {
+
         log.info("Getting stats for node: {}", id);
-        
+
         OrganizationNodeDto node = organizationService.getNodeById(id);
-        
-        Map<String, Object> stats = Map.of(
-                "id", node.getId(),
-                "name", node.getName(),
-                "childrenCount", node.getChildrenCount(),
-                "dataFilesCount", node.getDataFilesCount(),
-                "type", node.getType(),
-                "createdAt", node.getCreatedAt(),
-                "updatedAt", node.getUpdatedAt()
-        );
-        
+
+        Map<String, Object> stats = Map.of("id", node.getId(), "name", node.getName(),
+                "childrenCount", node.getChildrenCount(), "dataFilesCount",
+                node.getDataFilesCount(), "type", node.getType(), "createdAt", node.getCreatedAt(),
+                "updatedAt", node.getUpdatedAt());
+
         return ResponseEntity.ok(stats);
     }
 }

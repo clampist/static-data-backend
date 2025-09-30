@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 自定义用户详情服务实现
+ * Custom user details service implementation
  */
 @Service
 @RequiredArgsConstructor
@@ -28,12 +28,12 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByUsernameOrEmail(usernameOrEmail)
                 .orElseThrow(() -> {
                     log.warn("User not found with username or email: {}", usernameOrEmail);
-                    return new UsernameNotFoundException("用户不存在: " + usernameOrEmail);
+                    return new UsernameNotFoundException("UserDoes not exist: " + usernameOrEmail);
                 });
 
         if (!user.getEnabled()) {
             log.warn("User account is disabled: {}", usernameOrEmail);
-            throw new UsernameNotFoundException("用户账户已被禁用: " + usernameOrEmail);
+            throw new UsernameNotFoundException("User account has been disabled: " + usernameOrEmail);
         }
 
         log.debug("User loaded successfully: {}", user.getUsername());
@@ -41,7 +41,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     /**
-     * 根据用户ID加载用户详情
+     * Find and load user details by user ID
      */
     @Transactional(readOnly = true)
     public UserDetails loadUserById(Long id) {
@@ -50,12 +50,12 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("User not found with id: {}", id);
-                    return new UsernameNotFoundException("用户不存在，ID: " + id);
+                    return new UsernameNotFoundException("User does not exist, ID: " + id);
                 });
 
         if (!user.getEnabled()) {
             log.warn("User account is disabled, id: {}", id);
-            throw new UsernameNotFoundException("用户账户已被禁用，ID: " + id);
+            throw new UsernameNotFoundException("User account has been disabled, ID: " + id);
         }
 
         log.debug("User loaded successfully by id: {}", user.getUsername());

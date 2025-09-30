@@ -1,14 +1,14 @@
 package com.staticdata.platform.exception;
 
 /**
- * 业务异常
+ * Business exception
  */
 public class BusinessException extends RuntimeException {
-    
+
     public BusinessException(String message) {
         super(message);
     }
-    
+
     public BusinessException(String message, Throwable cause) {
         super(message, cause);
     }

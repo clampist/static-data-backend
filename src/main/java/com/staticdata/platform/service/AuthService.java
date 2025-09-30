@@ -22,7 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 
 /**
- * 认证服务类 处理用户登录、注册、token管理等认证相关业务逻辑
+ * Authentication Service Class handles user login, registration, token management and other
+ * authentication-related business logic
  */
 @Service
 @RequiredArgsConstructor
@@ -35,34 +36,34 @@ public class AuthService {
     private final JwtUtils jwtUtils;
 
     /**
-     * 用户登录
+     * UserLogin
      * 
-     * @param loginRequest 登录请求
-     * @return 登录响应包含token和用户信息
+     * @param loginRequest LoginRequest
+     * @return Login response containing token and user information
      */
     @Transactional
     public LoginResponse login(LoginRequest loginRequest) {
         log.info("User login attempt: {}", loginRequest.getUsername());
 
         try {
-            // 验证用户凭据
+            // Validate user credentials
             Authentication authentication =
                     authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
                             loginRequest.getUsername(), loginRequest.getPassword()));
 
-            // 设置安全上下文
+            // Set security context
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // 获取用户主体
+            // Get user principal
             UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
 
-            // 生成JWT token
+            // GenerateJWT token
             String jwt = jwtUtils.generateJwtToken(userPrincipal.getUsername());
 
-            // 更新用户最后登录时间
+            // Update user last login time
             updateLastLoginTime(userPrincipal.getId());
 
-            // 构建用户DTO
+            // BuildUserDTO
             UserDto userDto = UserDto.builder().id(userPrincipal.getId())
                     .username(userPrincipal.getUsername()).email(userPrincipal.getEmail())
                     .fullName(userPrincipal.getFullName()).role(userPrincipal.getRole())
@@ -78,47 +79,49 @@ public class AuthService {
     }
 
     /**
-     * 用户注册
+     * UserRegister
      * 
-     * @param registerRequest 注册请求
-     * @return 用户DTO
+     * @param registerRequest RegisterRequest
+     * @return UserDTO
      */
     @Transactional
     public UserDto register(RegisterRequest registerRequest) {
         log.info("User registration attempt: {}", registerRequest.getUsername());
 
-        // 验证密码和确认密码是否匹配
+        // Validate password and confirm password match
         if (!registerRequest.getPassword().equals(registerRequest.getConfirmPassword())) {
-            throw new IllegalArgumentException("密码和确认密码不匹配");
+            throw new IllegalArgumentException("Password and confirm password do not match");
         }
 
-        // 检查用户名是否已存在
+        // CheckUsernameYesNoAlready exists
         if (userRepository.existsByUsername(registerRequest.getUsername())) {
-            throw new IllegalArgumentException("用户名已存在: " + registerRequest.getUsername());
+            throw new IllegalArgumentException(
+                    "UsernameAlready exists: " + registerRequest.getUsername());
         }
 
-        // 检查邮箱是否已存在
+        // Check if email already exists
         if (userRepository.existsByEmail(registerRequest.getEmail())) {
-            throw new IllegalArgumentException("邮箱已存在: " + registerRequest.getEmail());
+            throw new IllegalArgumentException(
+                    "Email already exists: " + registerRequest.getEmail());
         }
 
-        // 创建新用户
+        // Create new user
         User user = new User();
         user.setUsername(registerRequest.getUsername());
         user.setEmail(registerRequest.getEmail());
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setFullName(registerRequest.getFullName());
-        user.setRole(UserRole.USER); // 默认角色为USER
+        user.setRole(UserRole.USER); // Default role is USER
         user.setEnabled(true);
         user.setCreatedBy("SYSTEM");
         user.setUpdatedBy("SYSTEM");
 
-        // 保存用户
+        // SaveUser
         User savedUser = userRepository.save(user);
 
         log.info("User registration successful: {}", savedUser.getUsername());
 
-        // 转换为DTO并返回
+        // Convert to DTO and return
         return UserDto.builder().id(savedUser.getId()).username(savedUser.getUsername())
                 .email(savedUser.getEmail()).fullName(savedUser.getFullName())
                 .role(savedUser.getRole()).enabled(savedUser.getEnabled())
@@ -126,30 +129,30 @@ public class AuthService {
     }
 
     /**
-     * 刷新JWT token
+     * RefreshJWT token
      * 
-     * @param token 当前token
-     * @return 新的LoginResponse
+     * @param token Currenttoken
+     * @return NewLoginResponse
      */
     public LoginResponse refreshToken(String token) {
         log.info("Token refresh attempt");
 
-        // 验证当前token
+        // ValidateCurrenttoken
         if (!jwtUtils.validateJwtToken(token)) {
-            throw new IllegalArgumentException("无效的token");
+            throw new IllegalArgumentException("Invalid token");
         }
 
-        // 从token获取用户名
+        // Get username from token
         String username = jwtUtils.getUsernameFromJwtToken(token);
 
-        // 查找用户
+        // FindUser
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + username));
+                .orElseThrow(() -> new IllegalArgumentException("UserDoes not exist: " + username));
 
-        // 生成新token
+        // Generate new token
         String newJwt = jwtUtils.generateJwtToken(username);
 
-        // 构建用户DTO
+        // BuildUserDTO
         UserDto userDto = UserDto.builder().id(user.getId()).username(user.getUsername())
                 .email(user.getEmail()).fullName(user.getFullName()).role(user.getRole())
                 .enabled(user.getEnabled()).build();
@@ -160,29 +163,29 @@ public class AuthService {
     }
 
     /**
-     * 验证token有效性
+     * Validate token validity
      * 
      * @param token JWT token
-     * @return 是否有效
+     * @return YesNoValid
      */
     public boolean validateToken(String token) {
         return jwtUtils.validateJwtToken(token);
     }
 
     /**
-     * 从token获取用户信息
+     * Get user information from token
      * 
      * @param token JWT token
-     * @return 用户DTO
+     * @return UserDTO
      */
     public UserDto getUserFromToken(String token) {
         if (!jwtUtils.validateJwtToken(token)) {
-            throw new IllegalArgumentException("无效的token");
+            throw new IllegalArgumentException("Invalid token");
         }
 
         String username = jwtUtils.getUsernameFromJwtToken(token);
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + username));
+                .orElseThrow(() -> new IllegalArgumentException("UserDoes not exist: " + username));
 
         return UserDto.builder().id(user.getId()).username(user.getUsername())
                 .email(user.getEmail()).fullName(user.getFullName()).role(user.getRole())
@@ -191,9 +194,9 @@ public class AuthService {
     }
 
     /**
-     * 更新用户最后登录时间
+     * Update user last login time
      * 
-     * @param userId 用户ID
+     * @param userId UserID
      */
     private void updateLastLoginTime(Long userId) {
         try {
@@ -208,20 +211,20 @@ public class AuthService {
     }
 
     /**
-     * 检查用户名是否可用
+     * CheckUsernameYesNoAvailable
      * 
-     * @param username 用户名
-     * @return 是否可用
+     * @param username Username
+     * @return YesNoAvailable
      */
     public boolean isUsernameAvailable(String username) {
         return !userRepository.existsByUsername(username);
     }
 
     /**
-     * 检查邮箱是否可用
+     * Check if email is available
      * 
-     * @param email 邮箱
-     * @return 是否可用
+     * @param email Email
+     * @return YesNoAvailable
      */
     public boolean isEmailAvailable(String email) {
         return !userRepository.existsByEmail(email);

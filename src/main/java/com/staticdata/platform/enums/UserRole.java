@@ -1,16 +1,16 @@
 package com.staticdata.platform.enums;
 
 /**
- * 用户角色枚举
+ * User Role Enum
  */
 public enum UserRole {
     /**
-     * 管理员
+     * Administrator
      */
     ADMIN,
     
     /**
-     * 普通用户
+     * Regular User
      */
     USER
 }

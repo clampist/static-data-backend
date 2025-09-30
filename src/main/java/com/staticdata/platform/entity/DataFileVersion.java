@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 数据文件版本实体类（支持版本控制，最多保留10个版本）
+ * Data File Version Entity (supports version control, keeps up to 10 versions)
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

@@ -14,58 +14,58 @@ import java.util.Map;
 @Data
 public class CreateDataFileRequest {
     
-    @NotBlank(message = "文件名不能为空")
-    @Size(min = 2, max = 100, message = "文件名长度必须在2到100个字符之间")
-    @Schema(description = "数据文件名称", example = "用户基础数据表")
+    @NotBlank(message = "File name cannot be empty")
+    @Size(min = 2, max = 100, message = "File name length must be between 2 and 100 characters")
+    @Schema(description = "Data File name", example = "User basic data table")
     private String name;
     
-    @Size(max = 500, message = "描述长度不能超过500个字符")
-    @Schema(description = "数据文件描述", example = "存储用户基础信息，包括姓名、邮箱、手机号等")
+    @Size(max = 500, message = "Description length cannot exceed 500 characters")
+    @Schema(description = "Data File description", example = "Store user basic information including name, email, phone number, etc.")
     private String description;
     
-    @NotNull(message = "所属模块不能为空")
-    @Schema(description = "所属组织模块ID", example = "1")
+    @NotNull(message = "Module cannot be empty")
+    @Schema(description = "Organization module ID", example = "1")
     private Long organizationNodeId;
     
-    @Schema(description = "访问级别", example = "PRIVATE", allowableValues = {"PRIVATE", "PUBLIC"})
+    @Schema(description = "Access level", example = "PRIVATE", allowableValues = {"PRIVATE", "PUBLIC"})
     private DataFile.AccessLevel accessLevel = DataFile.AccessLevel.PRIVATE;
     
     @Valid
-    @Schema(description = "列定义列表")
+    @Schema(description = "Column definition list")
     private List<ColumnDefinitionRequest> columnDefinitions;
     
-    @Schema(description = "数据行列表")
+    @Schema(description = "Data row list")
     private List<Map<String, Object>> dataRows;
     
     @Data
     public static class ColumnDefinitionRequest {
-        @NotBlank(message = "列名不能为空")
-        @Size(max = 50, message = "列名长度不能超过50个字符")
-        @Schema(description = "列名", example = "username")
+        @NotBlank(message = "Column name cannot be empty")
+        @Size(max = 50, message = "Column name length cannot exceed 50 characters")
+        @Schema(description = "Column name", example = "username")
         private String name;
         
-        @NotNull(message = "数据类型不能为空")
-        @Schema(description = "数据类型", example = "STRING")
+        @NotNull(message = "Data type cannot be empty")
+        @Schema(description = "Data type", example = "STRING")
         private DataFile.ColumnDefinition.DataType dataType;
         
-        @Schema(description = "是否必填", example = "true")
+        @Schema(description = "Whether required", example = "true")
         private Boolean required = false;
         
-        @Schema(description = "默认值", example = "")
+        @Schema(description = "Default value", example = "")
         private String defaultValue;
         
-        @Schema(description = "最大长度", example = "50")
+        @Schema(description = "Maximum length", example = "50")
         private Integer maxLength;
         
-        @Size(max = 200, message = "列描述长度不能超过200个字符")
-        @Schema(description = "列描述", example = "用户登录名")
+        @Size(max = 200, message = "Column description length cannot exceed 200 characters")
+        @Schema(description = "Column description", example = "User login name")
         private String description;
         
-        @Size(max = 100, message = "验证规则长度不能超过100个字符")
-        @Schema(description = "验证规则", example = "^[a-zA-Z0-9_]+$")
+        @Size(max = 100, message = "Validation rule length cannot exceed 100 characters")
+        @Schema(description = "Validation rule", example = "^[a-zA-Z0-9_]+$")
         private String validationRule;
         
-        @Schema(description = "列排序", example = "1")
+        @Schema(description = "Column sort order", example = "1")
         private Integer sortOrder = 0;
     }
 }

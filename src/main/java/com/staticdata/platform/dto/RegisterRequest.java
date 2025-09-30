@@ -9,36 +9,36 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * 用户注册请求DTO
+ * UserRegistration Request DTO
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "用户注册请求")
+@Schema(description = "Registration request")
 public class RegisterRequest {
 
-    @Schema(description = "用户名", example = "john_doe")
-    @NotBlank(message = "用户名不能为空")
-    @Size(min = 3, max = 50, message = "用户名长度必须在3-50个字符之间")
+    @Schema(description = "Username", example = "john_doe")
+    @NotBlank(message = "Username cannot be empty")
+    @Size(min = 3, max = 50, message = "Username length must be between 3-50 characters")
     private String username;
 
-    @Schema(description = "邮箱地址", example = "john.doe@example.com")
-    @NotBlank(message = "邮箱不能为空")
-    @Email(message = "邮箱格式不正确")
-    @Size(max = 100, message = "邮箱长度不能超过100个字符")
+    @Schema(description = "Email address", example = "john.doe@example.com")
+    @NotBlank(message = "Email cannot be empty")
+    @Email(message = "Email format is incorrect")
+    @Size(max = 100, message = "Email length cannot exceed 100 characters")
     private String email;
 
-    @Schema(description = "密码", example = "password123")
-    @NotBlank(message = "密码不能为空")
-    @Size(min = 6, max = 100, message = "密码长度必须在6-100个字符之间")
+    @Schema(description = "Password", example = "password123")
+    @NotBlank(message = "Password cannot be empty")
+    @Size(min = 6, max = 100, message = "Password length must be between 6-100 characters")
     private String password;
 
-    @Schema(description = "确认密码", example = "password123")
-    @NotBlank(message = "确认密码不能为空")
+    @Schema(description = "Confirm password", example = "password123")
+    @NotBlank(message = "Confirm password cannot be empty")
     private String confirmPassword;
 
-    @Schema(description = "用户全名", example = "John Doe")
-    @NotBlank(message = "用户全名不能为空")
-    @Size(min = 2, max = 100, message = "用户全名长度必须在2-100个字符之间")
+    @Schema(description = "Full name", example = "John Doe")
+    @NotBlank(message = "Full name cannot be empty")
+    @Size(min = 2, max = 100, message = "Full name length must be between 2-100 characters")
     private String fullName;
 }

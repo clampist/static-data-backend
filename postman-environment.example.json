@@ -10,25 +10,25 @@
 		},
 		{
 			"key": "test_username",
-			"value": "testuser",
+			"value": "your_test_username",
 			"type": "default",
 			"enabled": true
 		},
 		{
 			"key": "test_email",
-			"value": "testuser@example.com",
+			"value": "your_test_email@example.com",
 			"type": "default",
 			"enabled": true
 		},
 		{
 			"key": "test_password",
-			"value": "password123",
+			"value": "your_test_password",
 			"type": "default",
 			"enabled": true
 		},
 		{
 			"key": "test_fullname",
-			"value": "Test User",
+			"value": "Your Test User",
 			"type": "default",
 			"enabled": true
 		},

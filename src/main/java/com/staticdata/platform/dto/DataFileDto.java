@@ -17,7 +17,7 @@ public class DataFileDto {
     private String fileHash;
     private Long organizationNodeId;
     private String organizationNodeName;
-    private String organizationNodePath; // 完整的组织路径，如：总公司/产品部/前端团队/用户体验
+    private String organizationNodePath; // Complete organization path, e.g.: Headquarters/Product Department/Frontend Team/User Experience
     private Long ownerId;
     private String ownerName;
     private DataFile.AccessLevel accessLevel;
@@ -29,9 +29,9 @@ public class DataFileDto {
     private LocalDateTime updatedAt;
     private String createdBy;
     private String updatedBy;
-    private Integer versionCount; // 版本数量
-    private String lastModifiedBy; // 最后修改者
-    private LocalDateTime lastModifiedAt; // 最后修改时间
+    private Integer versionCount; // Version count
+    private String lastModifiedBy; // Last modified by
+    private LocalDateTime lastModifiedAt; // Last modified time
     
     @Data
     @Builder
@@ -41,8 +41,8 @@ public class DataFileDto {
         private Boolean required;
         private String defaultValue;
         private Integer maxLength;
-        private String description; // 列描述
-        private String validationRule; // 验证规则
-        private Integer sortOrder; // 列排序
+        private String description; // Column description
+        private String validationRule; // Validation rule
+        private Integer sortOrder; // Column sort order
     }
 }

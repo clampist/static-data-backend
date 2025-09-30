@@ -25,35 +25,35 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 认证控制器
- * 处理用户登录、注册、token管理等认证相关请求
+ * Authentication Controller Handles user login, registration, token management and other
+ * authentication-related requests
  */
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "认证管理", description = "用户认证相关API")
+@Tag(name = "Authentication Management", description = "User authentication related APIs")
 public class AuthController {
 
     private final AuthService authService;
 
     /**
-     * 用户登录
+     * User login
      */
     @PostMapping("/login")
-    @Operation(summary = "用户登录", description = "用户使用用户名/邮箱和密码进行登录")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "登录成功", 
-                    content = @Content(schema = @Schema(implementation = LoginResponse.class))),
-        @ApiResponse(responseCode = "401", description = "认证失败"),
-        @ApiResponse(responseCode = "400", description = "请求参数错误")
-    })
-    public ResponseEntity<LoginResponse> login(
-            @Parameter(description = "登录请求信息", required = true)
-            @Valid @RequestBody LoginRequest loginRequest) {
-        
+    @Operation(summary = "User login", description = "User login with username/email and password")
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "200", description = "Login successful",
+                            content = @Content(
+                                    schema = @Schema(implementation = LoginResponse.class))),
+                    @ApiResponse(responseCode = "401", description = "Authentication failed"),
+                    @ApiResponse(responseCode = "400", description = "Invalid request parameters")})
+    public ResponseEntity<LoginResponse> login(@Parameter(description = "Login request information",
+            required = true) @Valid @RequestBody LoginRequest loginRequest) {
+
         log.info("Login attempt for user: {}", loginRequest.getUsername());
-        
+
         try {
             LoginResponse loginResponse = authService.login(loginRequest);
             return ResponseEntity.ok(loginResponse);
@@ -64,53 +64,55 @@ public class AuthController {
     }
 
     /**
-     * 用户注册
+     * User registration
      */
     @PostMapping("/register")
-    @Operation(summary = "用户注册", description = "新用户注册账号")
+    @Operation(summary = "User registration", description = "New user account registration")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "注册成功", 
+            @ApiResponse(responseCode = "201", description = "Registration successful",
                     content = @Content(schema = @Schema(implementation = UserDto.class))),
-        @ApiResponse(responseCode = "400", description = "请求参数错误或用户名/邮箱已存在"),
-        @ApiResponse(responseCode = "409", description = "用户名或邮箱冲突")
-    })
+            @ApiResponse(responseCode = "400",
+                    description = "Invalid request parameters or username/email already exists"),
+            @ApiResponse(responseCode = "409", description = "Username or email conflict")})
     public ResponseEntity<UserDto> register(
-            @Parameter(description = "注册请求信息", required = true)
-            @Valid @RequestBody RegisterRequest registerRequest) {
-        
+            @Parameter(description = "Registration request information",
+                    required = true) @Valid @RequestBody RegisterRequest registerRequest) {
+
         log.info("Registration attempt for user: {}", registerRequest.getUsername());
-        
-        // 验证密码确认
+
+        // Validate password confirmation
         if (!registerRequest.getPassword().equals(registerRequest.getConfirmPassword())) {
-            throw new IllegalArgumentException("密码和确认密码不匹配");
+            throw new IllegalArgumentException("Password and confirm password do not match");
         }
-        
+
         try {
             UserDto userDto = authService.register(registerRequest);
             return ResponseEntity.status(HttpStatus.CREATED).body(userDto);
         } catch (Exception e) {
-            log.error("Registration failed for user {}: {}", registerRequest.getUsername(), e.getMessage());
+            log.error("Registration failed for user {}: {}", registerRequest.getUsername(),
+                    e.getMessage());
             throw e;
         }
     }
 
     /**
-     * 刷新token
+     * Refresh token
      */
     @PostMapping("/refresh")
-    @Operation(summary = "刷新token", description = "使用当前token获取新的token")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "刷新成功", 
-                    content = @Content(schema = @Schema(implementation = LoginResponse.class))),
-        @ApiResponse(responseCode = "401", description = "token无效或已过期")
-    })
+    @Operation(summary = "Refresh token", description = "Get new token using current token")
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "200", description = "Refresh successful",
+                            content = @Content(
+                                    schema = @Schema(implementation = LoginResponse.class))),
+                    @ApiResponse(responseCode = "401", description = "Token invalid or expired")})
     public ResponseEntity<LoginResponse> refreshToken(HttpServletRequest request) {
         String token = parseJwtFromRequest(request);
-        
+
         if (token == null) {
-            throw new IllegalArgumentException("请求头中缺少Authorization token");
+            throw new IllegalArgumentException("Authorization token missing in request header");
         }
-        
+
         try {
             LoginResponse loginResponse = authService.refreshToken(token);
             return ResponseEntity.ok(loginResponse);
@@ -121,37 +123,35 @@ public class AuthController {
     }
 
     /**
-     * 验证token
+     * Validate token
      */
     @GetMapping("/validate")
-    @Operation(summary = "验证token", description = "验证当前token是否有效")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "验证结果"),
-        @ApiResponse(responseCode = "401", description = "token无效")
-    })
+    @Operation(summary = "Validate token", description = "Validate if current token is valid")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "ValidateResult"),
+            @ApiResponse(responseCode = "401", description = "Token invalid")})
     public ResponseEntity<Map<String, Object>> validateToken(HttpServletRequest request) {
         String token = parseJwtFromRequest(request);
-        
+
         Map<String, Object> response = new HashMap<>();
-        
+
         if (token == null) {
             response.put("valid", false);
-            response.put("message", "请求头中缺少Authorization token");
+            response.put("message", "Authorization token missing in request header");
             return ResponseEntity.badRequest().body(response);
         }
-        
+
         try {
             boolean isValid = authService.validateToken(token);
             response.put("valid", isValid);
-            
+
             if (isValid) {
                 UserDto user = authService.getUserFromToken(token);
                 response.put("user", user);
-                response.put("message", "token有效");
+                response.put("message", "Token is valid");
             } else {
-                response.put("message", "token无效或已过期");
+                response.put("message", "Token invalid or expired");
             }
-            
+
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Token validation failed: {}", e.getMessage());
@@ -162,22 +162,22 @@ public class AuthController {
     }
 
     /**
-     * 获取当前用户信息
+     * Get current user information
      */
     @GetMapping("/me")
-    @Operation(summary = "获取当前用户信息", description = "根据token获取当前登录用户的详细信息")
+    @Operation(summary = "Get current user information",
+            description = "Get detailed information of current logged-in user based on token")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "获取成功", 
+            @ApiResponse(responseCode = "200", description = "Retrieved successfully",
                     content = @Content(schema = @Schema(implementation = UserDto.class))),
-        @ApiResponse(responseCode = "401", description = "未认证或token无效")
-    })
+            @ApiResponse(responseCode = "401", description = "Unauthenticated or token invalid")})
     public ResponseEntity<UserDto> getCurrentUser(HttpServletRequest request) {
         String token = parseJwtFromRequest(request);
-        
+
         if (token == null) {
-            throw new IllegalArgumentException("请求头中缺少Authorization token");
+            throw new IllegalArgumentException("Authorization token missing in request header");
         }
-        
+
         try {
             UserDto user = authService.getUserFromToken(token);
             return ResponseEntity.ok(user);
@@ -188,71 +188,67 @@ public class AuthController {
     }
 
     /**
-     * 检查用户名可用性
+     * Check username availability
      */
     @GetMapping("/check-username")
-    @Operation(summary = "检查用户名可用性", description = "检查指定用户名是否可用")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "检查结果"),
-        @ApiResponse(responseCode = "400", description = "参数错误")
-    })
-    public ResponseEntity<Map<String, Object>> checkUsername(
-            @Parameter(description = "要检查的用户名", required = true)
-            @RequestParam String username) {
-        
+    @Operation(summary = "Check username availability",
+            description = "Check if specified username is available")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Check result"),
+            @ApiResponse(responseCode = "400", description = "Parameter error")})
+    public ResponseEntity<Map<String, Object>> checkUsername(@Parameter(
+            description = "Username to check", required = true) @RequestParam String username) {
+
         Map<String, Object> response = new HashMap<>();
-        
+
         if (!StringUtils.hasText(username)) {
             response.put("available", false);
-            response.put("message", "用户名不能为空");
+            response.put("message", "Username cannot be empty");
             return ResponseEntity.badRequest().body(response);
         }
-        
+
         boolean available = authService.isUsernameAvailable(username);
         response.put("available", available);
-        response.put("message", available ? "用户名可用" : "用户名已存在");
-        
+        response.put("message", available ? "Username is available" : "Username already exists");
+
         return ResponseEntity.ok(response);
     }
 
     /**
-     * 检查邮箱可用性
+     * Check email availability
      */
     @GetMapping("/check-email")
-    @Operation(summary = "检查邮箱可用性", description = "检查指定邮箱是否可用")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "检查结果"),
-        @ApiResponse(responseCode = "400", description = "参数错误")
-    })
-    public ResponseEntity<Map<String, Object>> checkEmail(
-            @Parameter(description = "要检查的邮箱", required = true)
-            @RequestParam String email) {
-        
+    @Operation(summary = "Check email availability",
+            description = "Check if specified email is available")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Check result"),
+            @ApiResponse(responseCode = "400", description = "Parameter error")})
+    public ResponseEntity<Map<String, Object>> checkEmail(@Parameter(description = "Email to check",
+            required = true) @RequestParam String email) {
+
         Map<String, Object> response = new HashMap<>();
-        
+
         if (!StringUtils.hasText(email)) {
             response.put("available", false);
-            response.put("message", "邮箱不能为空");
+            response.put("message", "Email cannot be empty");
             return ResponseEntity.badRequest().body(response);
         }
-        
+
         boolean available = authService.isEmailAvailable(email);
         response.put("available", available);
-        response.put("message", available ? "邮箱可用" : "邮箱已存在");
-        
+        response.put("message", available ? "Email is available" : "Email already exists");
+
         return ResponseEntity.ok(response);
     }
 
     /**
-     * 从HTTP请求中解析JWT token
+     * Parse JWT token from HTTP request
      */
     private String parseJwtFromRequest(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");
-        
+
         if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
             return headerAuth.substring(7);
         }
-        
+
         return null;
     }
 }

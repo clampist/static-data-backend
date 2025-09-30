@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 数据文件实体类
+ * Data File Entity
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

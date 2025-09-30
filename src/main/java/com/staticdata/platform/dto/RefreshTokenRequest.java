@@ -5,13 +5,13 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 
 /**
- * 令牌刷新请求DTO
+ * Token refresh request DTO
  */
 @Data
 @Accessors(chain = true)
-@Schema(description = "令牌刷新请求")
+@Schema(description = "Token refresh request")
 public class RefreshTokenRequest {
 
-    @Schema(description = "刷新令牌")
+    @Schema(description = "Refresh token")
     private String refreshToken;
 }

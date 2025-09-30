@@ -1,9 +1,9 @@
 # Test Environment Configuration
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/static_data_platform_test
-    username: sdp_user
-    password: dev_password
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/static_data_platform_test}
+    username: ${SPRING_DATASOURCE_USERNAME:sdp_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:dev_password}
   
   # JPA Test Settings
   jpa:
@@ -25,8 +25,8 @@ logging:
 # Security Test Settings
 app:
   jwt:
-    secret: testSecretKey123456789012345678901234567890
-    expiration: 3600000
+    secret: ${APP_JWT_SECRET:testSecretKey123456789012345678901234567890}
+    expiration: ${APP_JWT_EXPIRATION:3600000}
   
   # Test Features
   audit:

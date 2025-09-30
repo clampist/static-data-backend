@@ -1,0 +1,50 @@
+g# CI Environment Configuration
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/static_data_platform_test}
+    username: ${SPRING_DATASOURCE_USERNAME:sdp_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:test_password}
+    driver-class-name: org.postgresql.Driver
+  
+  # JPA CI Settings
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  
+  # Redis CI Settings
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      timeout: 30000
+      lettuce:
+        pool:
+          max-active: 4
+          max-idle: 4
+          min-idle: 0
+
+# Logging CI Settings
+logging:
+  level:
+    com.staticdata.platform: INFO
+    org.springframework.web: WARN
+    org.springframework.security: WARN
+    org.springframework.test: INFO
+    org.testcontainers: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Security CI Settings
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:testSecretKey1234567890123456789012345678901234567890123456789012345678901234567890}
+    expiration: ${APP_JWT_EXPIRATION:86400000}
+  
+  # CI Features
+  audit:
+    enabled: false

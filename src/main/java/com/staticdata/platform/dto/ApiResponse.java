@@ -7,28 +7,28 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 /**
- * 通用API响应DTO
+ * Generic API Response DTO
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(chain = true)
-@Schema(description = "API响应")
+@Schema(description = "API response")
 public class ApiResponse<T> {
 
-    @Schema(description = "是否成功", example = "true")
+    @Schema(description = "Whether successful", example = "true")
     private Boolean success;
 
-    @Schema(description = "响应消息", example = "操作成功")
+    @Schema(description = "Response message", example = "Operation successful")
     private String message;
 
-    @Schema(description = "响应数据")
+    @Schema(description = "Response data")
     private T data;
 
-    @Schema(description = "错误代码")
+    @Schema(description = "Error code")
     private String errorCode;
 
-    @Schema(description = "时间戳")
+    @Schema(description = "Timestamp")
     private Long timestamp;
 
     public ApiResponse(Boolean success, String message) {
@@ -45,7 +45,7 @@ public class ApiResponse<T> {
     }
 
     public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(true, "操作成功", data);
+        return new ApiResponse<>(true, "Operation successful", data);
     }
 
     public static <T> ApiResponse<T> success(String message, T data) {

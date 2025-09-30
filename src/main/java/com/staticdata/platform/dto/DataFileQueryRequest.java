@@ -7,30 +7,30 @@ import lombok.Data;
 @Data
 public class DataFileQueryRequest {
     
-    @Schema(description = "文件名关键词", example = "用户")
+    @Schema(description = "File name keyword", example = "User")
     private String name;
     
-    @Schema(description = "所属模块ID", example = "1")
+    @Schema(description = "Module ID", example = "1")
     private Long organizationNodeId;
     
-    @Schema(description = "文件所有者ID", example = "1")
+    @Schema(description = "File owner ID", example = "1")
     private Long ownerId;
     
-    @Schema(description = "访问级别", example = "PUBLIC")
+    @Schema(description = "Access level", example = "PUBLIC")
     private DataFile.AccessLevel accessLevel;
     
-    @Schema(description = "数据类型", example = "STRING")
+    @Schema(description = "Data type", example = "STRING")
     private DataFile.ColumnDefinition.DataType dataType;
     
-    @Schema(description = "页码", example = "1")
+    @Schema(description = "Page number", example = "1")
     private Integer page = 1;
     
-    @Schema(description = "每页大小", example = "10")
+    @Schema(description = "Page size", example = "10")
     private Integer size = 10;
     
-    @Schema(description = "排序字段", example = "createdAt")
+    @Schema(description = "Sort field", example = "createdAt")
     private String sortBy = "createdAt";
     
-    @Schema(description = "排序方向", example = "desc", allowableValues = {"asc", "desc"})
+    @Schema(description = "Sort direction", example = "desc", allowableValues = {"asc", "desc"})
     private String sortDirection = "desc";
 }

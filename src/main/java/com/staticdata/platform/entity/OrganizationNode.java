@@ -8,7 +8,7 @@ import lombok.experimental.Accessors;
 import java.util.List;
 
 /**
- * 组织节点实体（部门-团队-业务方向-模块的树状结构）
+ * Organization Node Entity (tree structure of Department-Team-Business Direction-Module)
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

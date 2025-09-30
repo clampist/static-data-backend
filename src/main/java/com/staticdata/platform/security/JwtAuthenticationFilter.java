@@ -18,8 +18,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * JWT认证过滤器
- * 从HTTP请求中解析JWT token并验证用户身份
+ * JWT Authentication Filter
+ * Parse JWT token from HTTP request and validate user identity
  */
 @Component
 @RequiredArgsConstructor
@@ -58,7 +58,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * 从HTTP请求头中解析JWT token
+     * Parse JWT token from HTTP request header
      */
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");
@@ -74,7 +74,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
         
-        // 排除不需要认证的路径
+        // Exclude paths that do not require authentication
         return path.startsWith("/api/auth/") ||
                path.startsWith("/api/swagger-ui") ||
                path.startsWith("/api/api-docs") ||

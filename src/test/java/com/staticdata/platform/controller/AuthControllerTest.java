@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * 认证控制器集成测试 使用@SpringBootTest替代@WebMvcTest，避免Spring Security配置问题
+ * Authentication controller integration test using @SpringBootTest instead of @WebMvcTest to avoid Spring Security configuration issues
  */
 @SpringBootTest
 @AutoConfigureWebMvc
@@ -54,22 +54,22 @@ class AuthControllerTest {
 
   @BeforeEach
   void setUp() {
-    // 设置MockMvc
+    // Setup MockMvc
     mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
 
-    // 设置登录请求
+    // Setup login request
     loginRequest = new LoginRequest().setUsername("testuser").setPassword("password");
 
-    // 设置注册请求
+    // Setup register request
     registerRequest =
         new RegisterRequest("newuser", "new@example.com", "password", "password", "New User");
 
-    // 设置用户DTO
+    // Setup user DTO
     userDto = UserDto.builder().id(1L).username("testuser").email("test@example.com")
         .fullName("Test User").role(UserRole.USER).enabled(true).createdAt(LocalDateTime.now())
         .updatedAt(LocalDateTime.now()).build();
 
-    // 设置登录响应
+    // Setup login response
     loginResponse = new LoginResponse("jwt-token", 86400000L, userDto);
   }
 
@@ -125,7 +125,7 @@ class AuthControllerTest {
   void register_WithExistingUsername_ShouldReturnBadRequest() throws Exception {
     // Given
     when(authService.register(any(RegisterRequest.class)))
-        .thenThrow(new IllegalArgumentException("用户名已存在"));
+        .thenThrow(new IllegalArgumentException("Username already exists"));
 
     // When & Then
     mockMvc

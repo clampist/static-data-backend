@@ -9,41 +9,41 @@ import lombok.experimental.Accessors;
 import java.time.LocalDateTime;
 
 /**
- * 用户信息DTO
+ * User Information DTO
  */
 @Data
 @Builder
 @Accessors(chain = true)
-@Schema(description = "用户信息")
+@Schema(description = "User information")
 public class UserDto {
 
-    @Schema(description = "用户ID")
+    @Schema(description = "User ID")
     private Long id;
 
-    @Schema(description = "用户名", example = "admin")
+    @Schema(description = "Username", example = "admin")
     private String username;
 
-    @Schema(description = "邮箱", example = "admin@example.com")
+    @Schema(description = "Email", example = "admin@example.com")
     private String email;
 
-    @Schema(description = "全名", example = "管理员")
+    @Schema(description = "Full name", example = "Administrator")
     private String fullName;
 
-    @Schema(description = "用户角色", example = "ADMIN")
+    @Schema(description = "User role", example = "ADMIN")
     private UserRole role;
 
-    @Schema(description = "是否启用", example = "true")
+    @Schema(description = "Whether enabled", example = "true")
     private Boolean enabled;
 
-    @Schema(description = "创建时间")
+    @Schema(description = "Created time")
     private LocalDateTime createdAt;
 
-    @Schema(description = "更新时间")
+    @Schema(description = "Updated time")
     private LocalDateTime updatedAt;
 
-    @Schema(description = "创建者")
+    @Schema(description = "Created by")
     private String createdBy;
 
-    @Schema(description = "更新者")
+    @Schema(description = "Updated by")
     private String updatedBy;
 }

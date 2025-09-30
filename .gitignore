@@ -38,3 +38,22 @@ api-tests/cov/
 api-tests/coverage-reports/
 ut-scripts/coverage-reports/
 ut-scripts/packages/
+
+### Environment and Secrets ###
+.env
+*.env
+.env.local
+.env.development
+.env.production
+.env.docker
+**/application-prod.yml
+**/application-prod.properties
+**/application-secret.yml
+**/application-secret.properties
+
+### Logs ###
+logs/
+*.log
+
+### Postman files with sensitive data ###
+postman-environment.json

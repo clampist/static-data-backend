@@ -1,9 +1,9 @@
 # Development Environment Configuration
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/static_data_platform_dev
-    username: sdp_user
-    password: dev_password
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/static_data_platform_dev}
+    username: ${SPRING_DATASOURCE_USERNAME:sdp_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:dev_password}
   
   # JPA Development Settings
   jpa:
@@ -31,13 +31,13 @@ logging:
 # Security Development Settings
 app:
   jwt:
-    secret: devSecretKey1234567890123456789012345678901234567890123456789012345678901234567890
-    expiration: 86400000
+    secret: ${APP_JWT_SECRET:devSecretKey1234567890123456789012345678901234567890123456789012345678901234567890}
+    expiration: ${APP_JWT_EXPIRATION:86400000}
   
   # CORS Development Settings
   security:
     cors:
-      allowed-origins: http://localhost:3000,http://localhost:5173
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
   
   # Development Features
   audit:

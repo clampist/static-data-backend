@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 组织节点DTO
+ * Organization Node DTO
  */
 @Data
 @Builder
@@ -31,7 +31,7 @@ public class OrganizationNodeDto {
     private String createdBy;
     private String updatedBy;
     
-    // 统计信息
+    // Statistics
     private Long childrenCount;
     private Long dataFilesCount;
 }

@@ -5,23 +5,23 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 
 /**
- * 登录响应DTO
+ * Login Response DTO
  */
 @Data
 @Accessors(chain = true)
-@Schema(description = "登录响应")
+@Schema(description = "Login response")
 public class LoginResponse {
 
-    @Schema(description = "JWT访问令牌")
+    @Schema(description = "JWT access token")
     private String accessToken;
 
-    @Schema(description = "令牌类型", example = "Bearer")
+    @Schema(description = "Token type", example = "Bearer")
     private String tokenType = "Bearer";
 
-    @Schema(description = "令牌过期时间（毫秒）")
+    @Schema(description = "Token expiration time (milliseconds)")
     private Long expiresIn;
 
-    @Schema(description = "用户信息")
+    @Schema(description = "User information")
     private UserDto user;
 
     public LoginResponse(String accessToken, Long expiresIn, UserDto user) {

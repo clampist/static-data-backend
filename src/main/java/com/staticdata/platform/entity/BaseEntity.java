@@ -8,7 +8,7 @@ import lombok.experimental.Accessors;
 import java.time.LocalDateTime;
 
 /**
- * 基础实体类，包含公共字段
+ * Base Entity containing common fields
  */
 @Data
 @Accessors(chain = true)

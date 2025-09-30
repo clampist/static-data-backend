@@ -10,8 +10,7 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
- * 标准错误响应类
- * 用于统一应用中的错误响应格式
+ * Standard error response class. Used to unify error response format in the application.
  */
 @Data
 @Builder
@@ -19,34 +18,34 @@ import java.util.Map;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorResponse {
-    
+
     /**
-     * 错误发生时间
+     * Error occurrence time
      */
     private LocalDateTime timestamp;
-    
+
     /**
-     * HTTP状态码
+     * HTTP status code
      */
     private Integer status;
-    
+
     /**
-     * 错误类型
+     * Error type
      */
     private String error;
-    
+
     /**
-     * 错误消息
+     * Error message
      */
     private String message;
-    
+
     /**
-     * 请求路径
+     * RequestPath
      */
     private String path;
-    
+
     /**
-     * 详细错误信息（如字段验证错误）
+     * Detailed error information (such as field validation errors)
      */
     private Map<String, String> details;
 }

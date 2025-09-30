@@ -10,34 +10,34 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * 组织节点Repository
+ * Organization NodeRepository
  */
 @Repository
 public interface OrganizationNodeRepository extends JpaRepository<OrganizationNode, Long> {
     
     /**
-     * 根据父节点ID查找子节点
+     * Find child nodes by parent node ID
      */
     List<OrganizationNode> findByParentIdOrderBySortOrderAsc(Long parentId);
     
     /**
-     * 查找根节点（父节点ID为null）
+     * Find root nodes (parent node ID is null)
      */
     List<OrganizationNode> findByParentIdIsNullOrderBySortOrderAsc();
     
     /**
-     * 根据节点类型查找节点
+     * Find nodes by node type
      */
     List<OrganizationNode> findByTypeOrderBySortOrderAsc(OrganizationNode.NodeType type);
     
     /**
-     * 根据名称模糊查询
+     * Find by name fuzzy query
      */
     @Query("SELECT n FROM OrganizationNode n WHERE n.name LIKE %:name% ORDER BY n.sortOrder ASC")
     List<OrganizationNode> findByNameContainingIgnoreCase(@Param("name") String name);
     
     /**
-     * 检查同一父节点下是否存在相同名称的节点
+     * Check if nodes with same name exist under same parent node
      */
     @Query("SELECT COUNT(n) > 0 FROM OrganizationNode n WHERE n.name = :name AND n.parentId = :parentId AND n.id != :excludeId")
     boolean existsByNameAndParentIdAndIdNot(@Param("name") String name, 
@@ -45,14 +45,14 @@ public interface OrganizationNodeRepository extends JpaRepository<OrganizationNo
                                            @Param("excludeId") Long excludeId);
     
     /**
-     * 检查根节点下是否存在相同名称的节点
+     * Check if nodes with same name exist under root node
      */
     @Query("SELECT COUNT(n) > 0 FROM OrganizationNode n WHERE n.name = :name AND n.parentId IS NULL AND n.id != :excludeId")
     boolean existsByNameAndParentIdIsNullAndIdNot(@Param("name") String name, 
                                                  @Param("excludeId") Long excludeId);
     
     /**
-     * 查找所有子节点（递归查询）
+     * Find all child nodes (recursive query)
      */
     @Query(value = "WITH RECURSIVE node_tree AS (" +
                    "SELECT * FROM organization_nodes WHERE id = :nodeId " +
@@ -64,7 +64,7 @@ public interface OrganizationNodeRepository extends JpaRepository<OrganizationNo
     List<OrganizationNode> findAllChildrenRecursively(@Param("nodeId") Long nodeId);
     
     /**
-     * 查找所有父节点（递归查询）
+     * Find all parent nodes (recursive query)
      */
     @Query(value = "WITH RECURSIVE parent_tree AS (" +
                    "SELECT * FROM organization_nodes WHERE id = :nodeId " +
@@ -76,13 +76,13 @@ public interface OrganizationNodeRepository extends JpaRepository<OrganizationNo
     List<OrganizationNode> findAllParentsRecursively(@Param("nodeId") Long nodeId);
     
     /**
-     * 统计子节点数量
+     * Count child nodes
      */
     @Query("SELECT COUNT(n) FROM OrganizationNode n WHERE n.parentId = :parentId")
     Long countChildrenByParentId(@Param("parentId") Long parentId);
     
     /**
-     * 统计根节点数量
+     * Count root nodes
      */
     @Query("SELECT COUNT(n) FROM OrganizationNode n WHERE n.parentId IS NULL")
     Long countRootNodes();

@@ -7,13 +7,13 @@ import org.springframework.test.util.ReflectionTestUtils;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * JWT工具类单元测试
+ * JWT utility class unit test
  */
 class JwtUtilsTest {
 
     private JwtUtils jwtUtils;
     private final String testSecret = "testSecretKeyForJwtThatShouldBeLongEnoughToMeetSecurityRequirements";
-    private final int testExpiration = 86400000; // 24小时
+    private final int testExpiration = 86400000; // 24 hours
 
     @BeforeEach
     void setUp() {
