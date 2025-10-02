@@ -141,7 +141,9 @@ SonarQube 分析任务已集成到 CI/CD 流程中：
 
 1. **连接被拒绝 (Connection refused)**
    - 错误信息：`SonarQube server [http://localhost:9000] can not be reached`
-   - 解决方案：确保 `sonar-project.properties` 中包含 `sonar.host.url=https://sonarcloud.io`
+   - 解决方案：
+     - 确保 `sonar-project.properties` 中包含 `sonar.host.url=https://sonarcloud.io`
+     - 或者在命令行中明确指定：`-Dsonar.host.url=https://sonarcloud.io`
    - 原因：默认情况下 SonarQube 插件会尝试连接本地服务器
 
 2. **认证失败**
@@ -171,14 +173,14 @@ SonarQube 分析任务已集成到 CI/CD 流程中：
 # 设置环境变量
 export SONAR_TOKEN=your_token_here
 
-# 运行分析 (使用 SonarCloud)
-./mvnw -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=clampist_static-data-backend
+# 运行分析 (使用 SonarCloud) - 推荐方式
+./mvnw -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=clampist_static-data-backend -Dsonar.host.url=https://sonarcloud.io
 ```
 
 或者使用简化的命令：
 
 ```bash
-# 使用配置文件中的设置
+# 使用配置文件中的设置 (确保 sonar-project.properties 包含 sonar.host.url)
 ./mvnw sonar:sonar
 ```
 
