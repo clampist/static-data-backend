@@ -51,7 +51,10 @@ sonar.projectKey=clampist_static-data-backend
 sonar.projectName=Static Data Platform - Backend
 sonar.projectVersion=1.0
 sonar.organization=clampist
+sonar.host.url=https://sonarcloud.io
 ```
+
+> **重要**：`sonar.host.url=https://sonarcloud.io` 配置是必需的，它告诉 SonarQube 插件连接到 SonarCloud 而不是本地服务器。
 
 ### 2. pom.xml 属性配置
 
@@ -136,15 +139,20 @@ SonarQube 分析任务已集成到 CI/CD 流程中：
 
 ### 常见问题
 
-1. **认证失败**
+1. **连接被拒绝 (Connection refused)**
+   - 错误信息：`SonarQube server [http://localhost:9000] can not be reached`
+   - 解决方案：确保 `sonar-project.properties` 中包含 `sonar.host.url=https://sonarcloud.io`
+   - 原因：默认情况下 SonarQube 插件会尝试连接本地服务器
+
+2. **认证失败**
    - 检查 `SONAR_TOKEN` 是否正确
    - 确认令牌有足够的权限
 
-2. **项目不存在**
-   - 检查 `SONAR_HOST_URL` 是否正确
-   - 确认项目已在 SonarQube 中创建
+3. **项目不存在**
+   - 检查项目密钥 `clampist_static-data-backend` 是否正确
+   - 确认项目已在 SonarCloud 中创建
 
-3. **覆盖率报告缺失**
+4. **覆盖率报告缺失**
    - 确认 JaCoCo 插件正确配置
    - 检查测试是否正常执行
 
