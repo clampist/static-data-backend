@@ -428,12 +428,18 @@ jobs:
         name: api-test-artifacts
         path: ./target/failsafe-reports/
 
+    - name: Cache SonarQube packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.sonar/cache
+        key: ${{ runner.os }}-sonar
+        restore-keys: ${{ runner.os }}-sonar
+
     - name: SonarQube Scan
-      run: ./mvnw sonar:sonar
+      run: ./mvnw -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=clampist_static-data-backend
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
   output:
     needs: [test, api-test, sonar]
