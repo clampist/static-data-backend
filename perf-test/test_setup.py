@@ -24,6 +24,35 @@ def check_backend_health():
         print(f"❌ Cannot connect to backend: {e}")
         return False
 
+def register_test_user():
+    """Register test user if not exists"""
+    try:
+        response = requests.post(
+            Config.AUTH_REGISTER,
+            json={
+                "username": Config.DEFAULT_USERNAME,
+                "email": f"{Config.DEFAULT_USERNAME}@test.com",
+                "password": Config.DEFAULT_PASSWORD,
+                "confirmPassword": Config.DEFAULT_PASSWORD,
+                "fullName": "Test User"
+            },
+            timeout=10
+        )
+        
+        if response.status_code in [200, 201]:
+            print(f"✅ Test user registered successfully")
+            return True
+        elif response.status_code == 400 and "already exists" in response.text.lower():
+            print(f"ℹ️  Test user already exists")
+            return True
+        else:
+            print(f"⚠️  User registration failed: HTTP {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"⚠️  User registration failed: {e}")
+        return False
+
 def test_authentication():
     """Test authentication endpoint"""
     try:
@@ -44,6 +73,27 @@ def test_authentication():
             else:
                 print("❌ Authentication test failed: No access token in response")
                 return None
+        elif response.status_code == 401:
+            print("⚠️  Authentication failed, trying to register test user...")
+            if register_test_user():
+                # Try login again after registration
+                response = requests.post(
+                    Config.AUTH_LOGIN,
+                    json={
+                        "username": Config.DEFAULT_USERNAME,
+                        "password": Config.DEFAULT_PASSWORD
+                    },
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    if "accessToken" in data:
+                        print("✅ Authentication test passed after user registration")
+                        return data["accessToken"]
+            
+            print(f"❌ Authentication test failed: HTTP {response.status_code}")
+            print(f"Response: {response.text}")
+            return None
         else:
             print(f"❌ Authentication test failed: HTTP {response.status_code}")
             print(f"Response: {response.text}")
