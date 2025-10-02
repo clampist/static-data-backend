@@ -10,19 +10,31 @@ from datetime import datetime
 def generate_report_index(reports_dir="reports"):
     """Generate an index.html file for the reports directory"""
     
-    # Find all HTML and CSV files
+    # Find all HTML and CSV files in reports directory
     html_files = []
     csv_files = []
     log_files = []
     
+    # Scan reports directory
     if os.path.exists(reports_dir):
         for file in os.listdir(reports_dir):
-            if file.endswith('.html'):
-                html_files.append(file)
-            elif file.endswith('.csv'):
-                csv_files.append(file)
-            elif file.endswith('.log'):
-                log_files.append(file)
+            file_path = os.path.join(reports_dir, file)
+            if os.path.isfile(file_path):
+                if file.endswith('.html'):
+                    html_files.append(file_path)
+                elif file.endswith('.csv'):
+                    csv_files.append(file_path)
+                elif file.endswith('.log'):
+                    log_files.append(file_path)
+    
+    # Also scan logs directory if it exists
+    logs_dir = "logs"
+    if os.path.exists(logs_dir):
+        for file in os.listdir(logs_dir):
+            file_path = os.path.join(logs_dir, file)
+            if os.path.isfile(file_path) and file.endswith('.log'):
+                # Use relative path for display
+                log_files.append(file_path)
     
     # Generate HTML content
     html_content = f"""<!DOCTYPE html>
@@ -125,11 +137,13 @@ def generate_html_section(html_files):
         return '<div class="report-section"><h2>📈 HTML Reports</h2><p>No HTML reports found.</p></div>'
     
     html = '<div class="report-section"><h2>📈 HTML Reports</h2>'
-    for file in html_files:
-        file_size = get_file_size(file)
+    for file_path in html_files:
+        file_name = os.path.basename(file_path)
+        file_size = get_file_size(file_path)
+        display_name = file_name.replace('_', ' ').replace('.html', '').title()
         html += f'''
-        <a href="{file}" class="report-link" target="_blank">
-            <span class="icon">📊</span> {file.replace('_', ' ').replace('.html', '').title()}
+        <a href="{file_name}" class="report-link" target="_blank">
+            <span class="icon">📊</span> {display_name}
             <div class="file-info">Size: {file_size}</div>
         </a>'''
     html += '</div>'
@@ -141,11 +155,13 @@ def generate_csv_section(csv_files):
         return '<div class="report-section"><h2>📄 Data Files</h2><p>No CSV files found.</p></div>'
     
     html = '<div class="report-section"><h2>📄 Data Files</h2>'
-    for file in csv_files:
-        file_size = get_file_size(file)
+    for file_path in csv_files:
+        file_name = os.path.basename(file_path)
+        file_size = get_file_size(file_path)
+        display_name = file_name.replace('_', ' ').replace('.csv', '').title()
         html += f'''
-        <a href="{file}" class="report-link" target="_blank">
-            <span class="icon">📊</span> {file.replace('_', ' ').replace('.csv', '').title()}
+        <a href="{file_name}" class="report-link" target="_blank">
+            <span class="icon">📊</span> {display_name}
             <div class="file-info">Size: {file_size}</div>
         </a>'''
     html += '</div>'
@@ -157,26 +173,35 @@ def generate_log_section(log_files):
         return '<div class="report-section"><h2>📝 Log Files</h2><p>No log files found.</p></div>'
     
     html = '<div class="report-section"><h2>📝 Log Files</h2>'
-    for file in log_files:
-        file_size = get_file_size(file)
+    for file_path in log_files:
+        file_name = os.path.basename(file_path)
+        file_size = get_file_size(file_path)
+        display_name = file_name.replace('_', ' ').replace('.log', '').title()
+        # For log files, we need to handle the path correctly
+        if file_path.startswith('logs/'):
+            href = f"../{file_path}"  # Go up one level to access logs directory
+        else:
+            href = file_name
         html += f'''
-        <a href="{file}" class="report-link" target="_blank">
-            <span class="icon">📋</span> {file.replace('_', ' ').replace('.log', '').title()}
+        <a href="{href}" class="report-link" target="_blank">
+            <span class="icon">📋</span> {display_name}
             <div class="file-info">Size: {file_size}</div>
         </a>'''
     html += '</div>'
     return html
 
-def get_file_size(filename):
+def get_file_size(filepath):
     """Get human-readable file size"""
     try:
-        size = os.path.getsize(filename)
+        if not os.path.exists(filepath):
+            return "Unknown"
+        size = os.path.getsize(filepath)
         for unit in ['B', 'KB', 'MB', 'GB']:
             if size < 1024.0:
                 return f"{size:.1f} {unit}"
             size /= 1024.0
         return f"{size:.1f} TB"
-    except OSError:
+    except (OSError, TypeError):
         return "Unknown"
 
 if __name__ == "__main__":
