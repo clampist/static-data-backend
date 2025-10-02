@@ -28,8 +28,9 @@ def run_simple_test():
     print("🚀 简单CI性能测试")
     print("=" * 40)
     
-    # Create directories
+    # Create directories including logs to prevent file errors
     os.makedirs('reports', exist_ok=True)
+    os.makedirs('logs', exist_ok=True)
     
     # Check backend
     print("🔍 Checking backend...")
@@ -39,7 +40,7 @@ def run_simple_test():
     
     print("✅ Backend is running")
     
-    # Simple locust command without log file
+    # Simple locust command with log file to prevent default log creation issues
     cmd = [
         sys.executable, '-m', 'locust',
         '-f', 'locustfile_auth.py',
@@ -50,6 +51,7 @@ def run_simple_test():
         '--headless',
         '--html=reports/simple_test_report.html',
         '--csv=reports/simple_test_stats',
+        '--logfile=logs/simple_test.log',
         '--loglevel=WARNING'  # Reduce log output
     ]
     

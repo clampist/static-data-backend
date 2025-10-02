@@ -535,16 +535,23 @@ jobs:
     - name: Run Quick Performance Tests
       run: |
         cd perf-test
-        # Create directories and run the most reliable test method
-        mkdir -p reports
-        # Use simple test with minimal logging to avoid file issues
-        python3 simple_ci_test.py
+        # Create directories and run Locust with proper logging setup
+        mkdir -p reports logs
+        # Try Locust CI test first, fallback to direct command if it fails
+        python3 locust_ci_test.py || (echo "⚠️  Locust CI test failed, trying direct command..." && chmod +x run_locust_direct.sh && ./run_locust_direct.sh)
 
     - name: Check Performance Baseline
       run: |
         cd perf-test
         # 重命名文件以匹配基准检查脚本的期望
-        cp reports/ci_performance_stats_stats.csv reports/auth_performance_stats_stats.csv
+        if [ -f "reports/locust_ci_stats_stats.csv" ]; then
+          cp reports/locust_ci_stats_stats.csv reports/auth_performance_stats_stats.csv
+        elif [ -f "reports/locust_direct_stats_stats.csv" ]; then
+          cp reports/locust_direct_stats_stats.csv reports/auth_performance_stats_stats.csv
+        else
+          echo "❌ No Locust stats file found"
+          exit 1
+        fi
         python scripts/check_baseline.py --test-type auth
 
     - name: Stop Backend Application
