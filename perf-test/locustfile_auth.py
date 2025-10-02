@@ -57,7 +57,7 @@ class AuthUser(HttpUser):
             catch_response=True,
             name="auth_register"
         ) as response:
-            if response.status_code in [200, 201, 409]:  # 409 for existing user
+            if response.status_code in [200, 201, 400, 409]:  # 400 and 409 for existing user
                 response.success()
             else:
                 response.failure(f"HTTP {response.status_code}")
