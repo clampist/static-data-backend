@@ -59,7 +59,8 @@ class PerformanceBaseline:
                 # 找到 Aggregated 行
                 aggregated_row = None
                 for row in rows:
-                    if row.get('Type') == 'Aggregated':
+                    # 检查 Type 列为空且 Name 列为 'Aggregated'
+                    if (row.get('Type') == '' or row.get('Type') is None) and row.get('Name') == 'Aggregated':
                         aggregated_row = row
                         break
                 
@@ -67,12 +68,18 @@ class PerformanceBaseline:
                     print(f"❌ No aggregated data found in {stats_file}")
                     return None
                 
+                # 处理可能的列名变体
+                request_count = int(aggregated_row.get('Request Count', aggregated_row.get('request_count', 0)))
+                failure_count = int(aggregated_row.get('Failure Count', aggregated_row.get('failure_count', 0)))
+                avg_response_time = float(aggregated_row.get('Average Response Time', aggregated_row.get('avg_response_time', 0)))
+                requests_per_second = float(aggregated_row.get('Requests/s', aggregated_row.get('requests_per_second', 0)))
+                
                 return {
-                    'request_count': int(aggregated_row.get('Request Count', 0)),
-                    'failure_count': int(aggregated_row.get('Failure Count', 0)),
-                    'avg_response_time': float(aggregated_row.get('Average Response Time', 0)),
-                    'requests_per_second': float(aggregated_row.get('Requests/s', 0)),
-                    'success_rate': (int(aggregated_row.get('Request Count', 0)) - int(aggregated_row.get('Failure Count', 0))) / max(int(aggregated_row.get('Request Count', 1)), 1)
+                    'request_count': request_count,
+                    'failure_count': failure_count,
+                    'avg_response_time': avg_response_time,
+                    'requests_per_second': requests_per_second,
+                    'success_rate': (request_count - failure_count) / max(request_count, 1)
                 }
                 
         except Exception as e:
