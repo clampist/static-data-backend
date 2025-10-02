@@ -55,5 +55,13 @@ ut-scripts/packages/
 logs/
 *.log
 
+### Performance Test Results ###
+perf-test/logs/
+perf-test/reports/
+perf-test/__pycache__/
+perf-test/.env
+perf-test/*.pyc
+perf-test/*.pyo
+
 ### Postman files with sensitive data ###
 postman-environment.json
