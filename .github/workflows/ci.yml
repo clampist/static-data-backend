@@ -535,19 +535,10 @@ jobs:
     - name: Run Quick Performance Tests
       run: |
         cd perf-test
-        # Create necessary directories
+        # Create directories and run the most reliable test method
         mkdir -p reports
-        # Run simple performance test without log file
-        python3 -m locust -f locustfile_auth.py \
-          --host=http://localhost:8080 \
-          --users=10 \
-          --spawn-rate=2 \
-          --run-time=60s \
-          --headless \
-          --html=reports/ci_performance_report.html \
-          --csv=reports/ci_performance_stats \
-          --csv-full-history \
-          --loglevel=INFO
+        # Use simple test with minimal logging to avoid file issues
+        python3 simple_ci_test.py
 
     - name: Check Performance Baseline
       run: |
