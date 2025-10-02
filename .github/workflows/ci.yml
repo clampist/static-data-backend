@@ -554,6 +554,11 @@ jobs:
         fi
         python scripts/check_baseline.py --test-type auth
 
+    - name: Generate Report Index
+      run: |
+        cd perf-test
+        python scripts/generate_report_index.py
+
     - name: Stop Backend Application
       if: always()
       run: |
@@ -566,7 +571,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: performance-test-reports
+        name: performance-test-reports-${{ github.run_number }}
         path: |
           perf-test/reports/
           perf-test/logs/
@@ -576,14 +581,19 @@ jobs:
       if: always()
       run: |
         echo "## 📊 Performance Test Results" >> $GITHUB_STEP_SUMMARY
-        if [ -f "perf-test/reports/ci_performance_report.html" ]; then
-          echo "✅ Performance tests completed successfully" >> $GITHUB_STEP_SUMMARY
+        if [ -f "perf-test/reports/locust_ci_report.html" ] || [ -f "perf-test/reports/locust_direct_report.html" ]; then
+          echo "✅ Locust performance tests completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "📈 [📊 View HTML Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) - Download artifacts to view" >> $GITHUB_STEP_SUMMARY
           echo "📊 Test Statistics:" >> $GITHUB_STEP_SUMMARY
           
           # 提取关键指标
-          if [ -f "perf-test/reports/ci_performance_stats_stats.csv" ]; then
+          if [ -f "perf-test/reports/locust_ci_stats_stats.csv" ]; then
             echo '```' >> $GITHUB_STEP_SUMMARY
-            head -5 perf-test/reports/ci_performance_stats_stats.csv >> $GITHUB_STEP_SUMMARY
+            head -3 perf-test/reports/locust_ci_stats_stats.csv >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          elif [ -f "perf-test/reports/locust_direct_stats_stats.csv" ]; then
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            head -3 perf-test/reports/locust_direct_stats_stats.csv >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
           
